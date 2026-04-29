@@ -1,5 +1,18 @@
 # 更新日志
 
+## v1.6.3
+
+### 更新内容
+
+- 固定 GitHub Actions Release 构建环境为 `macos-26`，确保自动发布流程可以使用 macOS 26 Liquid Glass API 构建安装包。
+- 保留 v1.6.2 的 Liquid Glass 偏好设置界面改动。
+
+### 验证
+
+- 已通过本地 `./build.sh` 构建。
+- 已验证 Universal Binary 同时包含 `arm64` 和 `x86_64`。
+- 已验证应用签名有效。
+
 ## v1.6.2
 
 ### 更新内容

@@ -5,6 +5,10 @@ struct BatteryState {
     let isOnBatteryPower: Bool
     let chargePercent: Int?
 
+    var isConnectedToPower: Bool {
+        !isOnBatteryPower
+    }
+
     func isBelowOrEqual(to threshold: Int) -> Bool {
         guard isOnBatteryPower, let chargePercent else {
             return false
@@ -15,7 +19,7 @@ struct BatteryState {
 }
 
 final class BatteryMonitor {
-    var onProtectionTriggered: ((BatteryState) -> Void)?
+    var onStateEvaluated: ((BatteryState) -> Void)?
 
     private var timer: Timer?
 
@@ -35,18 +39,12 @@ final class BatteryMonitor {
     }
 
     func evaluate() {
-        guard AppPreferences.batteryProtectionEnabled else {
-            return
-        }
-
         let state = currentState()
-        if state.isBelowOrEqual(to: AppPreferences.batteryProtectionThreshold) {
-            onProtectionTriggered?(state)
-        }
+        onStateEvaluated?(state)
     }
 
-    func shouldPreventEnabling() -> BatteryState? {
-        guard AppPreferences.batteryProtectionEnabled else {
+    func shouldPreventEnabling(for mode: BatteryProtectionMode = AppPreferences.batteryProtectionMode) -> BatteryState? {
+        guard mode == .autoDisable else {
             return nil
         }
 

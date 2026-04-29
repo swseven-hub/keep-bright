@@ -18,6 +18,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var selectedDuration = AwakeDuration.saved
     private var activeUntil: Date?
     private var countdownTimer: Timer?
+    private var wasDisabledByBatteryProtection = false
+    private var didSendLowBatteryNotification = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -212,13 +214,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
 
-            guard assertion.enable() else {
+            guard assertion.enable(mode: AppPreferences.sleepPreventionMode) else {
                 stopCountdown()
                 updateMenuState()
                 showAssertionError()
                 return
             }
 
+            wasDisabledByBatteryProtection = false
             startTimedSession(for: selectedDuration)
 
             if notify {
@@ -230,6 +233,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             stopCountdown()
             assertion.disable()
+            wasDisabledByBatteryProtection = false
 
             if notify {
                 notifier.send(
@@ -243,9 +247,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureBatteryProtection() {
-        batteryMonitor.onProtectionTriggered = { [weak self] state in
+        batteryMonitor.onStateEvaluated = { [weak self] state in
             DispatchQueue.main.async {
-                self?.applyBatteryProtection(state)
+                self?.handleBatteryState(state)
             }
         }
         batteryMonitor.start()
@@ -254,24 +258,84 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func preferencesDidChange() {
         configureDurationMenu()
 
+        if AppPreferences.batteryProtectionMode != .autoDisable {
+            wasDisabledByBatteryProtection = false
+        }
+
+        if assertion.isActive {
+            guard assertion.enable(mode: AppPreferences.sleepPreventionMode) else {
+                stopCountdown()
+                updateMenuState()
+                showAssertionError()
+                return
+            }
+        }
+
         if selectedDuration == .custom, assertion.isActive {
             startTimedSession(for: selectedDuration)
         }
 
         if let state = batteryMonitor.shouldPreventEnabling(), assertion.isActive {
-            applyBatteryProtection(state)
+            applyBatteryProtection(state, shouldRestoreWhenConnected: true)
         }
 
         updateMenuState()
     }
 
-    private func applyBatteryProtection(_ state: BatteryState) {
+    private func handleBatteryState(_ state: BatteryState) {
+        let isBelowThreshold = state.isBelowOrEqual(to: AppPreferences.batteryProtectionThreshold)
+
+        if state.isConnectedToPower {
+            didSendLowBatteryNotification = false
+
+            if wasDisabledByBatteryProtection, AppPreferences.restoreAfterPowerConnected {
+                wasDisabledByBatteryProtection = false
+                setKeepBrightEnabled(true, notify: true)
+                notifier.send(
+                    title: "已连接电源",
+                    body: "Keep Bright 已恢复保持亮屏。"
+                )
+            }
+            return
+        }
+
+        if !isBelowThreshold {
+            didSendLowBatteryNotification = false
+            return
+        }
+
+        switch AppPreferences.batteryProtectionMode {
+        case .off:
+            return
+        case .notifyOnly:
+            notifyLowBatteryOnce(state)
+        case .autoDisable:
+            applyBatteryProtection(state, shouldRestoreWhenConnected: AppPreferences.restoreAfterPowerConnected)
+        }
+    }
+
+    private func notifyLowBatteryOnce(_ state: BatteryState) {
+        guard assertion.isActive, !didSendLowBatteryNotification else {
+            return
+        }
+
+        didSendLowBatteryNotification = true
+        let chargeText = state.chargePercent.map { "\($0)%" } ?? "当前"
+        notifier.send(
+            title: "电量较低",
+            body: "电量 \(chargeText)，已低于 \(AppPreferences.batteryProtectionThreshold)% 阈值。保持亮屏仍在运行。"
+        )
+    }
+
+    private func applyBatteryProtection(_ state: BatteryState, shouldRestoreWhenConnected: Bool) {
         guard assertion.isActive else {
             return
         }
 
         stopCountdown()
         assertion.disable()
+        wasDisabledByBatteryProtection = shouldRestoreWhenConnected
+        didSendLowBatteryNotification = true
         updateMenuState()
 
         let chargeText = state.chargePercent.map { "\($0)%" } ?? "当前"
@@ -473,7 +537,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return "保持亮屏：剩余 \(formattedRemainingTime())"
         }
 
-        return "保持亮屏：已开启（永久）"
+        return "保持亮屏：已开启（\(AppPreferences.sleepPreventionMode.shortTitle)，永久）"
     }
 
     private func menuBarTitle(isEnabled: Bool) -> String {
@@ -508,8 +572,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showAbout() {
         let alert = NSAlert()
-        alert.messageText = "保持亮屏 1.4.0"
-        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持 DMG 安装包、首次启动引导、偏好设置、自定义保持时长、电池保护、系统通知、开机自启动和更新检查。"
+        alert.messageText = "保持亮屏 1.5.0"
+        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持 Universal Binary、双模式防睡眠、电池保护模式、插电恢复、自动构建发布、DMG 安装包、偏好设置和更新检查。"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "好")
         alert.runModal()

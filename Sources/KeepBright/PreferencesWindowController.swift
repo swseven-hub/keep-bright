@@ -3,9 +3,11 @@ import AppKit
 final class PreferencesWindowController: NSWindowController {
     var onPreferencesChanged: (() -> Void)?
 
+    private let sleepModePopup = NSPopUpButton()
     private let launchCheckbox = NSButton(checkboxWithTitle: "启动后自动开启保持亮屏", target: nil, action: nil)
     private let updateChecksCheckbox = NSButton(checkboxWithTitle: "每天自动检查更新", target: nil, action: nil)
-    private let batteryProtectionCheckbox = NSButton(checkboxWithTitle: "低电量时自动关闭保持亮屏", target: nil, action: nil)
+    private let batteryProtectionPopup = NSPopUpButton()
+    private let restoreAfterPowerCheckbox = NSButton(checkboxWithTitle: "连接电源后自动恢复保持亮屏", target: nil, action: nil)
     private let customDurationStepper = NSStepper()
     private let customDurationField = NSTextField()
     private let thresholdSlider = NSSlider(value: 20, minValue: 5, maxValue: 80, target: nil, action: nil)
@@ -13,13 +15,13 @@ final class PreferencesWindowController: NSWindowController {
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 230),
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 390),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
         )
         window.title = "偏好设置"
-        window.setContentSize(NSSize(width: 460, height: 320))
+        window.setContentSize(NSSize(width: 500, height: 390))
         window.isReleasedWhenClosed = false
         window.center()
 
@@ -53,14 +55,19 @@ final class PreferencesWindowController: NSWindowController {
         let titleLabel = NSTextField(labelWithString: "Keep Bright")
         titleLabel.font = .systemFont(ofSize: 20, weight: .semibold)
 
+        configureSleepModePopup()
+        configureBatteryProtectionPopup()
+
+        let sleepModeRow = labeledRow(title: "防睡眠模式", control: sleepModePopup)
+
         launchCheckbox.target = self
         launchCheckbox.action = #selector(toggleLaunchPreference)
 
         updateChecksCheckbox.target = self
         updateChecksCheckbox.action = #selector(toggleUpdateChecks)
 
-        batteryProtectionCheckbox.target = self
-        batteryProtectionCheckbox.action = #selector(toggleBatteryProtection)
+        restoreAfterPowerCheckbox.target = self
+        restoreAfterPowerCheckbox.action = #selector(toggleRestoreAfterPower)
 
         customDurationField.alignment = .right
         customDurationField.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
@@ -83,6 +90,8 @@ final class PreferencesWindowController: NSWindowController {
         customDurationRow.addArrangedSubview(NSTextField(labelWithString: "分钟"))
         customDurationRow.addArrangedSubview(customDurationStepper)
 
+        let batteryModeRow = labeledRow(title: "低电量保护", control: batteryProtectionPopup)
+
         thresholdSlider.target = self
         thresholdSlider.action = #selector(changeBatteryThreshold)
         thresholdSlider.numberOfTickMarks = 16
@@ -103,11 +112,13 @@ final class PreferencesWindowController: NSWindowController {
         thresholdRow.addArrangedSubview(thresholdValueLabel)
 
         stack.addArrangedSubview(titleLabel)
+        stack.addArrangedSubview(sleepModeRow)
         stack.addArrangedSubview(launchCheckbox)
         stack.addArrangedSubview(updateChecksCheckbox)
         stack.addArrangedSubview(customDurationRow)
-        stack.addArrangedSubview(batteryProtectionCheckbox)
+        stack.addArrangedSubview(batteryModeRow)
         stack.addArrangedSubview(thresholdRow)
+        stack.addArrangedSubview(restoreAfterPowerCheckbox)
 
         contentView.addSubview(stack)
 
@@ -119,14 +130,69 @@ final class PreferencesWindowController: NSWindowController {
     }
 
     private func syncControls() {
+        selectPopupItem(sleepModePopup, rawValue: AppPreferences.sleepPreventionMode.rawValue)
         launchCheckbox.state = AppPreferences.enableOnLaunch ? .on : .off
         updateChecksCheckbox.state = AppPreferences.automaticUpdateChecksEnabled ? .on : .off
         customDurationField.integerValue = AppPreferences.customDurationMinutes
         customDurationStepper.integerValue = AppPreferences.customDurationMinutes
-        batteryProtectionCheckbox.state = AppPreferences.batteryProtectionEnabled ? .on : .off
+        selectPopupItem(batteryProtectionPopup, rawValue: AppPreferences.batteryProtectionMode.rawValue)
+        restoreAfterPowerCheckbox.state = AppPreferences.restoreAfterPowerConnected ? .on : .off
         thresholdSlider.integerValue = AppPreferences.batteryProtectionThreshold
         updateThresholdLabel()
         updateBatteryControls()
+    }
+
+    private func configureSleepModePopup() {
+        sleepModePopup.removeAllItems()
+        for mode in SleepPreventionMode.allCases {
+            sleepModePopup.addItem(withTitle: mode.title)
+            sleepModePopup.lastItem?.representedObject = mode.rawValue
+        }
+        sleepModePopup.target = self
+        sleepModePopup.action = #selector(changeSleepMode)
+        sleepModePopup.widthAnchor.constraint(equalToConstant: 250).isActive = true
+    }
+
+    private func configureBatteryProtectionPopup() {
+        batteryProtectionPopup.removeAllItems()
+        for mode in BatteryProtectionMode.allCases {
+            batteryProtectionPopup.addItem(withTitle: mode.title)
+            batteryProtectionPopup.lastItem?.representedObject = mode.rawValue
+        }
+        batteryProtectionPopup.target = self
+        batteryProtectionPopup.action = #selector(changeBatteryProtectionMode)
+        batteryProtectionPopup.widthAnchor.constraint(equalToConstant: 250).isActive = true
+    }
+
+    private func labeledRow(title: String, control: NSView) -> NSStackView {
+        let label = NSTextField(labelWithString: title)
+        label.alignment = .right
+        label.widthAnchor.constraint(equalToConstant: 92).isActive = true
+
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
+        row.addArrangedSubview(label)
+        row.addArrangedSubview(control)
+        return row
+    }
+
+    private func selectPopupItem(_ popup: NSPopUpButton, rawValue: Int) {
+        for item in popup.itemArray where item.representedObject as? Int == rawValue {
+            popup.select(item)
+            return
+        }
+    }
+
+    @objc private func changeSleepMode() {
+        guard let rawValue = sleepModePopup.selectedItem?.representedObject as? Int,
+              let mode = SleepPreventionMode(rawValue: rawValue) else {
+            return
+        }
+
+        AppPreferences.sleepPreventionMode = mode
+        onPreferencesChanged?()
     }
 
     @objc private func toggleLaunchPreference() {
@@ -139,9 +205,19 @@ final class PreferencesWindowController: NSWindowController {
         onPreferencesChanged?()
     }
 
-    @objc private func toggleBatteryProtection() {
-        AppPreferences.batteryProtectionEnabled = batteryProtectionCheckbox.state == .on
+    @objc private func changeBatteryProtectionMode() {
+        guard let rawValue = batteryProtectionPopup.selectedItem?.representedObject as? Int,
+              let mode = BatteryProtectionMode(rawValue: rawValue) else {
+            return
+        }
+
+        AppPreferences.batteryProtectionMode = mode
         updateBatteryControls()
+        onPreferencesChanged?()
+    }
+
+    @objc private func toggleRestoreAfterPower() {
+        AppPreferences.restoreAfterPowerConnected = restoreAfterPowerCheckbox.state == .on
         onPreferencesChanged?()
     }
 
@@ -174,8 +250,9 @@ final class PreferencesWindowController: NSWindowController {
     }
 
     private func updateBatteryControls() {
-        let isEnabled = AppPreferences.batteryProtectionEnabled
+        let isEnabled = AppPreferences.batteryProtectionMode != .off
         thresholdSlider.isEnabled = isEnabled
+        restoreAfterPowerCheckbox.isEnabled = AppPreferences.batteryProtectionMode == .autoDisable
         thresholdValueLabel.textColor = isEnabled ? .labelColor : .secondaryLabelColor
     }
 }

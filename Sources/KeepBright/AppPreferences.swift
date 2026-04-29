@@ -5,6 +5,7 @@ enum AppPreferences {
         static let enableOnLaunch = "EnableKeepBrightOnLaunch"
         static let batteryProtectionEnabled = "BatteryProtectionEnabled"
         static let batteryProtectionThreshold = "BatteryProtectionThreshold"
+        static let restoreAfterPowerConnected = "RestoreAfterPowerConnected"
         static let automaticUpdateChecksEnabled = "AutomaticUpdateChecksEnabled"
         static let customDurationMinutes = "CustomDurationMinutes"
         static let hasSeenFirstLaunchGuide = "HasSeenFirstLaunchGuide"
@@ -25,10 +26,33 @@ enum AppPreferences {
 
     static var batteryProtectionEnabled: Bool {
         get {
-            UserDefaults.standard.bool(forKey: Key.batteryProtectionEnabled)
+            batteryProtectionMode != .off
         }
         set {
-            UserDefaults.standard.set(newValue, forKey: Key.batteryProtectionEnabled)
+            batteryProtectionMode = newValue ? .autoDisable : .off
+        }
+    }
+
+    static var legacyBatteryProtectionEnabled: Bool {
+        UserDefaults.standard.bool(forKey: Key.batteryProtectionEnabled)
+    }
+
+    static var batteryProtectionMode: BatteryProtectionMode {
+        get {
+            BatteryProtectionMode.saved
+        }
+        set {
+            newValue.save()
+            UserDefaults.standard.set(newValue != .off, forKey: Key.batteryProtectionEnabled)
+        }
+    }
+
+    static var sleepPreventionMode: SleepPreventionMode {
+        get {
+            SleepPreventionMode.saved
+        }
+        set {
+            newValue.save()
         }
     }
 
@@ -52,6 +76,19 @@ enum AppPreferences {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: Key.automaticUpdateChecksEnabled)
+        }
+    }
+
+    static var restoreAfterPowerConnected: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: Key.restoreAfterPowerConnected) == nil {
+                return true
+            }
+
+            return UserDefaults.standard.bool(forKey: Key.restoreAfterPowerConnected)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.restoreAfterPowerConnected)
         }
     }
 

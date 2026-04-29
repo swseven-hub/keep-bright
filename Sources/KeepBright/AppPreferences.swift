@@ -5,6 +5,9 @@ enum AppPreferences {
         static let enableOnLaunch = "EnableKeepBrightOnLaunch"
         static let batteryProtectionEnabled = "BatteryProtectionEnabled"
         static let batteryProtectionThreshold = "BatteryProtectionThreshold"
+        static let automaticUpdateChecksEnabled = "AutomaticUpdateChecksEnabled"
+        static let customDurationMinutes = "CustomDurationMinutes"
+        static let hasSeenFirstLaunchGuide = "HasSeenFirstLaunchGuide"
     }
 
     static var enableOnLaunch: Bool {
@@ -39,7 +42,43 @@ enum AppPreferences {
         }
     }
 
+    static var automaticUpdateChecksEnabled: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: Key.automaticUpdateChecksEnabled) == nil {
+                return true
+            }
+
+            return UserDefaults.standard.bool(forKey: Key.automaticUpdateChecksEnabled)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.automaticUpdateChecksEnabled)
+        }
+    }
+
+    static var customDurationMinutes: Int {
+        get {
+            let savedValue = UserDefaults.standard.integer(forKey: Key.customDurationMinutes)
+            return savedValue == 0 ? 45 : clampedCustomDurationMinutes(savedValue)
+        }
+        set {
+            UserDefaults.standard.set(clampedCustomDurationMinutes(newValue), forKey: Key.customDurationMinutes)
+        }
+    }
+
+    static var hasSeenFirstLaunchGuide: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: Key.hasSeenFirstLaunchGuide)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.hasSeenFirstLaunchGuide)
+        }
+    }
+
     static func clampedBatteryThreshold(_ value: Int) -> Int {
         min(80, max(5, value))
+    }
+
+    static func clampedCustomDurationMinutes(_ value: Int) -> Int {
+        min(720, max(1, value))
     }
 }

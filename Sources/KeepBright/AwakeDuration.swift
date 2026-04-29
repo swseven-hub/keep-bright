@@ -6,11 +6,19 @@ enum AwakeDuration: Int, CaseIterable {
     case thirtyMinutes = 1800
     case oneHour = 3600
     case twoHours = 7200
+    case custom = -1
 
     private static let defaultsKey = "SelectedAwakeDuration"
 
     var seconds: TimeInterval? {
-        rawValue == 0 ? nil : TimeInterval(rawValue)
+        switch self {
+        case .forever:
+            return nil
+        case .custom:
+            return TimeInterval(AppPreferences.customDurationMinutes * 60)
+        case .fifteenMinutes, .thirtyMinutes, .oneHour, .twoHours:
+            return TimeInterval(rawValue)
+        }
     }
 
     var menuTitle: String {
@@ -25,6 +33,8 @@ enum AwakeDuration: Int, CaseIterable {
             return "1 小时"
         case .twoHours:
             return "2 小时"
+        case .custom:
+            return "自定义（\(AppPreferences.customDurationMinutes) 分钟）"
         }
     }
 
@@ -34,6 +44,8 @@ enum AwakeDuration: Int, CaseIterable {
             return "将一直保持亮屏，直到你手动关闭或退出应用。"
         case .fifteenMinutes, .thirtyMinutes, .oneHour, .twoHours:
             return "将在 \(menuTitle) 后自动关闭保持亮屏。"
+        case .custom:
+            return "将在 \(AppPreferences.customDurationMinutes) 分钟后自动关闭保持亮屏。"
         }
     }
 

@@ -19,7 +19,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    func send(title: String, body: String) {
+    func send(title: String, body: String, subtitle: String = "Keep Bright") {
         center.getNotificationSettings { [weak self] settings in
             guard let self else {
                 return
@@ -27,11 +27,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
             switch settings.authorizationStatus {
             case .authorized, .provisional, .ephemeral:
-                self.deliver(title: title, body: body)
+                self.deliver(title: title, subtitle: subtitle, body: body)
             case .notDetermined:
                 self.center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
                     if granted {
-                        self.deliver(title: title, body: body)
+                        self.deliver(title: title, subtitle: subtitle, body: body)
                     }
                 }
             case .denied:
@@ -42,11 +42,19 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    private func deliver(title: String, body: String) {
+    private func deliver(title: String, subtitle: String, body: String) {
         let content = UNMutableNotificationContent()
         content.title = title
+        content.subtitle = subtitle
         content.body = body
         content.sound = .default
+        content.categoryIdentifier = "keep-bright-status"
+        content.threadIdentifier = "keep-bright-status"
+        content.summaryArgument = title
+
+        if #available(macOS 12.0, *) {
+            content.interruptionLevel = .active
+        }
 
         let request = UNNotificationRequest(
             identifier: "keep-bright-\(UUID().uuidString)",

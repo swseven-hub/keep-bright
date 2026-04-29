@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             updateMenuState()
         }
 
+        showFirstLaunchGuideIfNeeded()
         checkForUpdatesAutomaticallyIfNeeded()
     }
 
@@ -119,6 +120,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.representedObject = duration.rawValue
             durationMenu.addItem(item)
         }
+
+        durationMenu.addItem(.separator())
+
+        let editCustomDurationItem = NSMenuItem(
+            title: "编辑自定义时长...",
+            action: #selector(showPreferences),
+            keyEquivalent: ""
+        )
+        editCustomDurationItem.target = self
+        durationMenu.addItem(editCustomDurationItem)
     }
 
     @objc private func toggleKeepBright() {
@@ -241,6 +252,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func preferencesDidChange() {
+        configureDurationMenu()
+
+        if selectedDuration == .custom, assertion.isActive {
+            startTimedSession(for: selectedDuration)
+        }
+
         if let state = batteryMonitor.shouldPreventEnabling(), assertion.isActive {
             applyBatteryProtection(state)
         }
@@ -359,8 +376,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func checkForUpdatesAutomaticallyIfNeeded() {
+        guard AppPreferences.automaticUpdateChecksEnabled else {
+            return
+        }
+
         updateChecker.checkAutomatically { [weak self] result in
             self?.handleUpdateCheckResult(result, isAutomatic: true)
+        }
+    }
+
+    private func showFirstLaunchGuideIfNeeded() {
+        guard !AppPreferences.hasSeenFirstLaunchGuide else {
+            return
+        }
+
+        AppPreferences.hasSeenFirstLaunchGuide = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            self?.showFirstLaunchGuide()
+        }
+    }
+
+    private func showFirstLaunchGuide() {
+        NSApp.activate(ignoringOtherApps: true)
+
+        let alert = NSAlert()
+        alert.messageText = "Keep Bright 已在菜单栏运行"
+        alert.informativeText = "点击屏幕顶部菜单栏里的杯子图标，可以开启或关闭保持亮屏、设置保持时长、打开偏好设置。"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "开始使用")
+        alert.addButton(withTitle: "打开偏好设置")
+
+        if alert.runModal() == .alertSecondButtonReturn {
+            showPreferences()
         }
     }
 
@@ -460,8 +508,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showAbout() {
         let alert = NSAlert()
-        alert.messageText = "保持亮屏 1.3.0"
-        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持偏好设置、默认启动状态、电池保护、定时关闭、菜单栏倒计时、系统通知、开机自启动和更新检查。"
+        alert.messageText = "保持亮屏 1.4.0"
+        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持 DMG 安装包、首次启动引导、偏好设置、自定义保持时长、电池保护、系统通知、开机自启动和更新检查。"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "好")
         alert.runModal()

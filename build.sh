@@ -43,3 +43,4 @@ cp "$BUILD_DIR/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
 codesign --force --sign - "$APP_DIR"
 
 echo "$APP_DIR"
+"$ROOT_DIR/Tools/create_dmg.sh"

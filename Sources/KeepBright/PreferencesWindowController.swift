@@ -291,14 +291,17 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
 
     private func makeDetailView() -> NSView {
         let glassView = NSGlassEffectView()
-        glassView.style = .clear
+        glassView.style = .regular
         glassView.cornerRadius = 0
-        glassView.tintColor = NSColor.windowBackgroundColor.withAlphaComponent(0.12)
+        glassView.tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.48)
         glassView.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
         glassView.contentView = container
+
+        let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.42)
+        readabilityBackdrop.translatesAutoresizingMaskIntoConstraints = false
 
         let headerStack = NSStackView()
         headerStack.orientation = .vertical
@@ -332,6 +335,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         detailDocumentView.addSubview(detailStack)
         scrollView.documentView = detailDocumentView
 
+        container.addSubview(readabilityBackdrop)
         container.addSubview(headerStack)
         container.addSubview(scrollView)
 
@@ -340,6 +344,11 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             container.trailingAnchor.constraint(equalTo: glassView.trailingAnchor),
             container.topAnchor.constraint(equalTo: glassView.topAnchor),
             container.bottomAnchor.constraint(equalTo: glassView.bottomAnchor),
+
+            readabilityBackdrop.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            readabilityBackdrop.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            readabilityBackdrop.topAnchor.constraint(equalTo: container.topAnchor),
+            readabilityBackdrop.bottomAnchor.constraint(equalTo: container.bottomAnchor),
 
             headerStack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 34),
             headerStack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -34),
@@ -559,8 +568,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let title = NSTextField(labelWithString: "Keep Bright")
         title.font = .systemFont(ofSize: 18, weight: .semibold)
 
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.6.3"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "10"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.6.4"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "11"
         let subtitle = NSTextField(labelWithString: "版本 \(version)（\(build)）")
         subtitle.font = .systemFont(ofSize: 12, weight: .regular)
         subtitle.textColor = .secondaryLabelColor
@@ -990,25 +999,66 @@ private final class SidebarCellView: NSTableCellView {
 
 private final class SettingsGroupView: NSGlassEffectView {
     let contentContainer = NSView()
+    private let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.36)
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         style = .regular
         cornerRadius = 14
-        tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.28)
+        tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.62)
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
-        contentView = contentContainer
+
+        let wrapper = NSView()
+        wrapper.translatesAutoresizingMaskIntoConstraints = false
+        readabilityBackdrop.translatesAutoresizingMaskIntoConstraints = false
+        wrapper.addSubview(readabilityBackdrop)
+        wrapper.addSubview(contentContainer)
+        contentView = wrapper
 
         NSLayoutConstraint.activate([
-            contentContainer.leadingAnchor.constraint(equalTo: leadingAnchor),
-            contentContainer.trailingAnchor.constraint(equalTo: trailingAnchor),
-            contentContainer.topAnchor.constraint(equalTo: topAnchor),
-            contentContainer.bottomAnchor.constraint(equalTo: bottomAnchor)
+            wrapper.leadingAnchor.constraint(equalTo: leadingAnchor),
+            wrapper.trailingAnchor.constraint(equalTo: trailingAnchor),
+            wrapper.topAnchor.constraint(equalTo: topAnchor),
+            wrapper.bottomAnchor.constraint(equalTo: bottomAnchor),
+
+            readabilityBackdrop.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor),
+            readabilityBackdrop.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor),
+            readabilityBackdrop.topAnchor.constraint(equalTo: wrapper.topAnchor),
+            readabilityBackdrop.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
+
+            contentContainer.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor),
+            contentContainer.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor),
+            contentContainer.topAnchor.constraint(equalTo: wrapper.topAnchor),
+            contentContainer.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor)
         ])
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+}
+
+private final class ReadabilityBackdropView: NSView {
+    private let alpha: CGFloat
+
+    init(alpha: CGFloat) {
+        self.alpha = alpha
+        super.init(frame: .zero)
+        wantsLayer = true
+        updateLayerColor()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateLayerColor()
+    }
+
+    private func updateLayerColor() {
+        layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(alpha).cgColor
     }
 }
 

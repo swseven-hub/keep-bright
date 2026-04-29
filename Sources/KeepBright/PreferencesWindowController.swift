@@ -548,8 +548,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let title = NSTextField(labelWithString: "Keep Bright")
         title.font = .systemFont(ofSize: 18, weight: .semibold)
 
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.6.0"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "7"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.6.1"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "8"
         let subtitle = NSTextField(labelWithString: "版本 \(version)（\(build)）")
         subtitle.font = .systemFont(ofSize: 12, weight: .regular)
         subtitle.textColor = .secondaryLabelColor

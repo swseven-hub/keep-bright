@@ -13,7 +13,7 @@
 当前发布包为 macOS Universal 版本，文件名类似：
 
 ```text
-KeepBright-1.6.0-macOS-universal.dmg
+KeepBright-1.6.1-macOS-universal.dmg
 ```
 
 下载后打开 DMG，将 `KeepBright.app` 拖到 `Applications` 文件夹，双击运行即可。Release 中也会保留 zip 包作为备用下载。
@@ -39,6 +39,7 @@ KeepBright-1.6.0-macOS-universal.dmg
 - 支持首次启动引导
 - 支持 DMG 拖拽安装包
 - 支持关闭每日自动检查更新
+- Release 页面会写明每个版本的更新内容、下载方式和校验信息
 - 支持 Universal Binary，同时包含 Apple Silicon 和 Intel 架构
 - 支持 GitHub Actions 自动构建 Release
 - 开启、关闭和定时结束时发送系统通知

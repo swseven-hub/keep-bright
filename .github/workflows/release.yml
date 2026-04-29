@@ -32,13 +32,32 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           ditto -c -k --keepParent build/KeepBright.app "dist/KeepBright-${VERSION}-macOS-universal.zip"
 
-      - name: Generate checksums
+      - name: Generate release notes and checksums
         run: |
+          CHANGELOG_SECTION="$RUNNER_TEMP/changelog-section.md"
           shasum -a 256 dist/KeepBright-*.dmg dist/KeepBright-*.zip > dist/checksums.txt
+
+          awk -v version="$GITHUB_REF_NAME" '
+            $0 == "## " version { capture = 1; next }
+            capture && /^## / { exit }
+            capture { print }
+          ' CHANGELOG.md > "$CHANGELOG_SECTION"
+
           cat > release-notes.md <<'EOF'
+          ## 本次更新
+
+          EOF
+          if [ -s "$CHANGELOG_SECTION" ]; then
+            cat "$CHANGELOG_SECTION" >> release-notes.md
+          else
+            echo "- 本版本包含最新代码改动。" >> release-notes.md
+          fi
+
+          cat >> release-notes.md <<'EOF'
+
           ## 下载
 
-          推荐下载 DMG 安装包；ZIP 作为备用下载。
+          推荐下载 DMG 安装包；ZIP 作为备用下载。`checksums.txt` 中包含安装包的 SHA-256 校验值。
 
           ## 校验
 
@@ -62,11 +81,13 @@ jobs:
             gh release upload "$GITHUB_REF_NAME" \
               dist/KeepBright-*.dmg \
               dist/KeepBright-*.zip \
+              dist/checksums.txt \
               --clobber
           else
             gh release create "$GITHUB_REF_NAME" \
               dist/KeepBright-*.dmg \
               dist/KeepBright-*.zip \
+              dist/checksums.txt \
               --title "Keep Bright $GITHUB_REF_NAME" \
               --notes-file release-notes.md
           fi

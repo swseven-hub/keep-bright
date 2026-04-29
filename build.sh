@@ -19,7 +19,9 @@ SOURCES=(
   "$ROOT_DIR/Sources/KeepBright/AwakeDuration.swift"
   "$ROOT_DIR/Sources/KeepBright/BatteryMonitor.swift"
   "$ROOT_DIR/Sources/KeepBright/DisplaySleepAssertion.swift"
+  "$ROOT_DIR/Sources/KeepBright/GlobalHotKeyManager.swift"
   "$ROOT_DIR/Sources/KeepBright/LoginItemManager.swift"
+  "$ROOT_DIR/Sources/KeepBright/MenuBarDisplayMode.swift"
   "$ROOT_DIR/Sources/KeepBright/NotificationManager.swift"
   "$ROOT_DIR/Sources/KeepBright/PreferencesWindowController.swift"
   "$ROOT_DIR/Sources/KeepBright/SleepPreventionMode.swift"
@@ -42,6 +44,7 @@ for ARCH in "${ARCHS[@]}"; do
     -sdk "$SDK_PATH" \
     -target "$ARCH-$MACOS_TARGET" \
     -framework AppKit \
+    -framework Carbon \
     -framework IOKit \
     -framework ServiceManagement \
     -framework UserNotifications \

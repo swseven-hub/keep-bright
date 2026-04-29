@@ -7,6 +7,11 @@ enum AppPreferences {
         static let batteryProtectionThreshold = "BatteryProtectionThreshold"
         static let restoreAfterPowerConnected = "RestoreAfterPowerConnected"
         static let automaticUpdateChecksEnabled = "AutomaticUpdateChecksEnabled"
+        static let menuBarDisplayMode = "MenuBarDisplayMode"
+        static let globalHotKeyEnabled = "GlobalHotKeyEnabled"
+        static let notifyStatusChanges = "NotifyStatusChanges"
+        static let notifyTimerEvents = "NotifyTimerEvents"
+        static let notifyBatteryEvents = "NotifyBatteryEvents"
         static let customDurationMinutes = "CustomDurationMinutes"
         static let hasSeenFirstLaunchGuide = "HasSeenFirstLaunchGuide"
     }
@@ -89,6 +94,67 @@ enum AppPreferences {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: Key.restoreAfterPowerConnected)
+        }
+    }
+
+    static var menuBarDisplayMode: MenuBarDisplayMode {
+        get {
+            MenuBarDisplayMode.saved
+        }
+        set {
+            newValue.save()
+        }
+    }
+
+    static var globalHotKeyEnabled: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: Key.globalHotKeyEnabled) == nil {
+                return true
+            }
+
+            return UserDefaults.standard.bool(forKey: Key.globalHotKeyEnabled)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.globalHotKeyEnabled)
+        }
+    }
+
+    static var notifyStatusChanges: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: Key.notifyStatusChanges) == nil {
+                return true
+            }
+
+            return UserDefaults.standard.bool(forKey: Key.notifyStatusChanges)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.notifyStatusChanges)
+        }
+    }
+
+    static var notifyTimerEvents: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: Key.notifyTimerEvents) == nil {
+                return true
+            }
+
+            return UserDefaults.standard.bool(forKey: Key.notifyTimerEvents)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.notifyTimerEvents)
+        }
+    }
+
+    static var notifyBatteryEvents: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: Key.notifyBatteryEvents) == nil {
+                return true
+            }
+
+            return UserDefaults.standard.bool(forKey: Key.notifyBatteryEvents)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.notifyBatteryEvents)
         }
     }
 

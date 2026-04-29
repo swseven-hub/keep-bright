@@ -13,7 +13,7 @@
 当前发布包为 macOS Apple Silicon 版本，文件名类似：
 
 ```text
-KeepBright-1.1.0-macOS-arm64.zip
+KeepBright-1.2.0-macOS-arm64.zip
 ```
 
 下载后解压，将 `KeepBright.app` 拖到“应用程序”文件夹，双击运行即可。
@@ -25,6 +25,7 @@ KeepBright-1.1.0-macOS-arm64.zip
 - 定时模式下在菜单栏显示剩余时间
 - 支持开机自启动
 - 开启、关闭和定时结束时发送系统通知
+- 支持手动检查更新，并每天自动检查一次 GitHub 最新版本
 - 菜单栏常驻，不占用 Dock
 - 点击菜单栏图标可以开启、关闭或退出
 - 退出应用时自动释放系统亮屏请求
@@ -93,10 +94,13 @@ open build/KeepBright.app
 - 开启或关闭保持亮屏
 - 选择保持时长
 - 开启或关闭开机自启动
+- 检查更新
 - 关于信息
 - 退出应用
 
 定时模式开启后，菜单栏会显示倒计时。倒计时结束时，应用会自动关闭保持亮屏，并通过系统通知提醒你。
+
+应用会每天自动检查一次 GitHub Releases 是否有新版本。你也可以在菜单栏中点击“检查更新...”手动检查。如果发现新版本，应用会弹出原生提示并引导你打开下载页面。
 
 ## 验证是否生效
 
@@ -144,6 +148,7 @@ pid xxxx(KeepBright): PreventUserIdleDisplaySleep named: "Keep Bright"
 - `Sources/KeepBright/DisplaySleepAssertion.swift`：IOKit 亮屏断言封装
 - `Sources/KeepBright/LoginItemManager.swift`：开机自启动管理
 - `Sources/KeepBright/NotificationManager.swift`：系统通知管理
+- `Sources/KeepBright/UpdateChecker.swift`：GitHub Release 更新检查
 - `Resources/Info.plist`：应用元信息，包含菜单栏应用配置
 - `Tools/make_icon.swift`：生成 `.icns` 图标资源
 - `build.sh`：无 Xcode 项目的轻量打包脚本
@@ -179,6 +184,10 @@ Keep Bright 使用 AppKit 构建菜单栏应用体验，并通过 `LSUIElement` 
 ### 为什么开机自启动没有立即生效？
 
 macOS 可能要求你在“系统设置”里批准新的登录项。如果菜单里显示“需要在系统设置中批准”，请打开系统设置并允许 Keep Bright 作为登录项启动。
+
+### 更新检查会自动安装新版本吗？
+
+不会。当前版本只会检查 GitHub Releases 是否有新版本，并提示你打开下载页面。下载和替换应用仍然由你手动完成。
 
 ## 开发
 

@@ -3,12 +3,14 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let assertion = DisplaySleepAssertion()
     private let notifier = NotificationManager()
+    private let updateChecker = UpdateChecker()
 
     private var statusItem: NSStatusItem?
     private let statusItemLabel = NSMenuItem()
     private let toggleItem = NSMenuItem()
     private let durationMenu = NSMenu()
     private let launchAtLoginItem = NSMenuItem()
+    private let checkForUpdatesItem = NSMenuItem()
 
     private var selectedDuration = AwakeDuration.saved
     private var activeUntil: Date?
@@ -18,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         configureMenuBarItem()
         setKeepBrightEnabled(true, notify: false)
+        checkForUpdatesAutomaticallyIfNeeded()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -58,6 +61,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(launchAtLoginItem)
 
         menu.addItem(.separator())
+
+        checkForUpdatesItem.title = "检查更新..."
+        checkForUpdatesItem.target = self
+        checkForUpdatesItem.action = #selector(checkForUpdatesManually)
+        menu.addItem(checkForUpdatesItem)
 
         let aboutItem = NSMenuItem(
             title: "关于保持亮屏",
@@ -133,6 +141,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             updateMenuState()
             showLoginItemError(error)
+        }
+    }
+
+    @objc private func checkForUpdatesManually() {
+        checkForUpdatesItem.isEnabled = false
+        checkForUpdatesItem.title = "正在检查更新..."
+
+        updateChecker.check { [weak self] result in
+            guard let self else {
+                return
+            }
+
+            self.checkForUpdatesItem.isEnabled = true
+            self.checkForUpdatesItem.title = "检查更新..."
+            self.handleUpdateCheckResult(result, isAutomatic: false)
         }
     }
 
@@ -262,6 +285,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func checkForUpdatesAutomaticallyIfNeeded() {
+        updateChecker.checkAutomatically { [weak self] result in
+            self?.handleUpdateCheckResult(result, isAutomatic: true)
+        }
+    }
+
+    private func handleUpdateCheckResult(_ result: UpdateCheckResult, isAutomatic: Bool) {
+        switch result {
+        case .updateAvailable(let info):
+            showUpdateAvailable(info)
+        case .upToDate(let currentVersion, let latestVersion):
+            if !isAutomatic {
+                showUpToDateAlert(currentVersion: currentVersion, latestVersion: latestVersion)
+            }
+        case .failed(let message):
+            if !isAutomatic {
+                showUpdateError(message)
+            }
+        }
+    }
+
+    private func showUpdateAvailable(_ info: UpdateInfo) {
+        NSApp.activate(ignoringOtherApps: true)
+
+        let alert = NSAlert()
+        alert.messageText = "发现新版本 \(info.latestVersion)"
+        alert.informativeText = "当前版本：\(info.currentVersion)\n最新版本：\(info.latestVersion)\n发布名称：\(info.releaseName)\n\n是否打开 GitHub Releases 下载新版本？"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "打开下载页面")
+        alert.addButton(withTitle: "稍后")
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            NSWorkspace.shared.open(info.releaseURL)
+        }
+    }
+
+    private func showUpToDateAlert(currentVersion: String, latestVersion: String) {
+        NSApp.activate(ignoringOtherApps: true)
+
+        let alert = NSAlert()
+        alert.messageText = "已是最新版本"
+        alert.informativeText = "当前版本：\(currentVersion)\nGitHub 最新版本：\(latestVersion)"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "好")
+        alert.runModal()
+    }
+
+    private func showUpdateError(_ message: String) {
+        NSApp.activate(ignoringOtherApps: true)
+
+        let alert = NSAlert()
+        alert.messageText = "检查更新失败"
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "好")
+        alert.runModal()
+    }
+
     private func statusText(isEnabled: Bool) -> String {
         guard isEnabled else {
             return "保持亮屏：已关闭"
@@ -306,8 +387,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showAbout() {
         let alert = NSAlert()
-        alert.messageText = "保持亮屏 1.1.0"
-        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持定时关闭、菜单栏倒计时、系统通知和开机自启动。"
+        alert.messageText = "保持亮屏 1.2.0"
+        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持定时关闭、菜单栏倒计时、系统通知、开机自启动和更新检查。"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "好")
         alert.runModal()

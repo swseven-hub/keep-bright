@@ -31,6 +31,7 @@ swiftc \
   "$ROOT_DIR/Sources/KeepBright/DisplaySleepAssertion.swift" \
   "$ROOT_DIR/Sources/KeepBright/LoginItemManager.swift" \
   "$ROOT_DIR/Sources/KeepBright/NotificationManager.swift" \
+  "$ROOT_DIR/Sources/KeepBright/UpdateChecker.swift" \
   -o "$MACOS_DIR/$APP_NAME"
 
 cp "$ROOT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"

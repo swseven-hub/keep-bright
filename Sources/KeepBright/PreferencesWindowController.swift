@@ -98,6 +98,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
+        window.backgroundColor = .clear
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 720, height: 500)
         window.center()
@@ -165,6 +166,10 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             return
         }
 
+        let glassContainer = NSGlassEffectContainerView()
+        glassContainer.spacing = 14
+        glassContainer.translatesAutoresizingMaskIntoConstraints = false
+
         let splitView = NSSplitView()
         splitView.isVertical = true
         splitView.dividerStyle = .thin
@@ -175,27 +180,33 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         splitView.addArrangedSubview(sidebarView)
         splitView.addArrangedSubview(detailView)
 
-        contentView.addSubview(splitView)
+        glassContainer.contentView = splitView
+        contentView.addSubview(glassContainer)
 
         NSLayoutConstraint.activate([
-            splitView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            splitView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            splitView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            splitView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            glassContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            glassContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            glassContainer.topAnchor.constraint(equalTo: contentView.topAnchor),
+            glassContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+
+            splitView.leadingAnchor.constraint(equalTo: glassContainer.leadingAnchor),
+            splitView.trailingAnchor.constraint(equalTo: glassContainer.trailingAnchor),
+            splitView.topAnchor.constraint(equalTo: glassContainer.topAnchor),
+            splitView.bottomAnchor.constraint(equalTo: glassContainer.bottomAnchor),
             sidebarView.widthAnchor.constraint(equalToConstant: 220)
         ])
     }
 
     private func makeSidebarView() -> NSView {
-        let effectView = NSVisualEffectView()
-        effectView.material = .sidebar
-        effectView.blendingMode = .behindWindow
-        effectView.state = .active
-        effectView.translatesAutoresizingMaskIntoConstraints = false
+        let glassView = NSGlassEffectView()
+        glassView.style = .regular
+        glassView.cornerRadius = 0
+        glassView.tintColor = NSColor.controlAccentColor.withAlphaComponent(0.08)
+        glassView.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
-        effectView.addSubview(container)
+        glassView.contentView = container
 
         let header = makeSidebarHeader()
         let scrollView = NSScrollView()
@@ -223,10 +234,10 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         container.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
-            container.leadingAnchor.constraint(equalTo: effectView.leadingAnchor),
-            container.trailingAnchor.constraint(equalTo: effectView.trailingAnchor),
-            container.topAnchor.constraint(equalTo: effectView.topAnchor),
-            container.bottomAnchor.constraint(equalTo: effectView.bottomAnchor),
+            container.leadingAnchor.constraint(equalTo: glassView.leadingAnchor),
+            container.trailingAnchor.constraint(equalTo: glassView.trailingAnchor),
+            container.topAnchor.constraint(equalTo: glassView.topAnchor),
+            container.bottomAnchor.constraint(equalTo: glassView.bottomAnchor),
 
             header.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
             header.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -14),
@@ -238,7 +249,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -12)
         ])
 
-        return effectView
+        return glassView
     }
 
     private func makeSidebarHeader() -> NSView {
@@ -279,15 +290,15 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
     }
 
     private func makeDetailView() -> NSView {
-        let effectView = NSVisualEffectView()
-        effectView.material = .contentBackground
-        effectView.blendingMode = .behindWindow
-        effectView.state = .active
-        effectView.translatesAutoresizingMaskIntoConstraints = false
+        let glassView = NSGlassEffectView()
+        glassView.style = .clear
+        glassView.cornerRadius = 0
+        glassView.tintColor = NSColor.windowBackgroundColor.withAlphaComponent(0.12)
+        glassView.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
-        effectView.addSubview(container)
+        glassView.contentView = container
 
         let headerStack = NSStackView()
         headerStack.orientation = .vertical
@@ -325,10 +336,10 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         container.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
-            container.leadingAnchor.constraint(equalTo: effectView.leadingAnchor),
-            container.trailingAnchor.constraint(equalTo: effectView.trailingAnchor),
-            container.topAnchor.constraint(equalTo: effectView.topAnchor),
-            container.bottomAnchor.constraint(equalTo: effectView.bottomAnchor),
+            container.leadingAnchor.constraint(equalTo: glassView.leadingAnchor),
+            container.trailingAnchor.constraint(equalTo: glassView.trailingAnchor),
+            container.topAnchor.constraint(equalTo: glassView.topAnchor),
+            container.bottomAnchor.constraint(equalTo: glassView.bottomAnchor),
 
             headerStack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 34),
             headerStack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -34),
@@ -346,7 +357,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             detailStack.bottomAnchor.constraint(equalTo: detailDocumentView.bottomAnchor)
         ])
 
-        return effectView
+        return glassView
     }
 
     private func selectPane(_ pane: Pane) {
@@ -548,8 +559,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let title = NSTextField(labelWithString: "Keep Bright")
         title.font = .systemFont(ofSize: 18, weight: .semibold)
 
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.6.1"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "8"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.6.2"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "9"
         let subtitle = NSTextField(labelWithString: "版本 \(version)（\(build)）")
         subtitle.font = .systemFont(ofSize: 12, weight: .regular)
         subtitle.textColor = .secondaryLabelColor
@@ -565,13 +576,13 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
 
         stack.addArrangedSubview(iconView)
         stack.addArrangedSubview(textStack)
-        card.addSubview(stack)
+        card.contentContainer.addSubview(stack)
 
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
-            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
-            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16)
+            stack.leadingAnchor.constraint(equalTo: card.contentContainer.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: card.contentContainer.trailingAnchor, constant: -16),
+            stack.topAnchor.constraint(equalTo: card.contentContainer.topAnchor, constant: 16),
+            stack.bottomAnchor.constraint(equalTo: card.contentContainer.bottomAnchor, constant: -16)
         ])
 
         return card
@@ -596,7 +607,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         rowStack.alignment = .width
         rowStack.spacing = 0
         rowStack.translatesAutoresizingMaskIntoConstraints = false
-        group.addSubview(rowStack)
+        group.contentContainer.addSubview(rowStack)
 
         for (index, row) in rows.enumerated() {
             rowStack.addArrangedSubview(row)
@@ -606,10 +617,10 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         }
 
         NSLayoutConstraint.activate([
-            rowStack.leadingAnchor.constraint(equalTo: group.leadingAnchor),
-            rowStack.trailingAnchor.constraint(equalTo: group.trailingAnchor),
-            rowStack.topAnchor.constraint(equalTo: group.topAnchor),
-            rowStack.bottomAnchor.constraint(equalTo: group.bottomAnchor)
+            rowStack.leadingAnchor.constraint(equalTo: group.contentContainer.leadingAnchor),
+            rowStack.trailingAnchor.constraint(equalTo: group.contentContainer.trailingAnchor),
+            rowStack.topAnchor.constraint(equalTo: group.contentContainer.topAnchor),
+            rowStack.bottomAnchor.constraint(equalTo: group.contentContainer.bottomAnchor)
         ])
 
         container.addArrangedSubview(group)
@@ -678,7 +689,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
 
     private func actionButton(title: String, action: Selector) -> NSButton {
         let button = NSButton(title: title, target: self, action: action)
-        button.bezelStyle = .rounded
+        button.bezelStyle = .glass
         button.controlSize = .regular
         return button
     }
@@ -977,31 +988,27 @@ private final class SidebarCellView: NSTableCellView {
     }
 }
 
-private final class SettingsGroupView: NSView {
-    override var wantsUpdateLayer: Bool {
-        true
-    }
+private final class SettingsGroupView: NSGlassEffectView {
+    let contentContainer = NSView()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        wantsLayer = true
+        style = .regular
+        cornerRadius = 14
+        tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.28)
+        contentContainer.translatesAutoresizingMaskIntoConstraints = false
+        contentView = contentContainer
+
+        NSLayoutConstraint.activate([
+            contentContainer.leadingAnchor.constraint(equalTo: leadingAnchor),
+            contentContainer.trailingAnchor.constraint(equalTo: trailingAnchor),
+            contentContainer.topAnchor.constraint(equalTo: topAnchor),
+            contentContainer.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-
-    override func updateLayer() {
-        layer?.cornerRadius = 8
-        layer?.masksToBounds = true
-        layer?.borderWidth = 1
-        layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.72).cgColor
-        layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.5).cgColor
-    }
-
-    override func viewDidChangeEffectiveAppearance() {
-        super.viewDidChangeEffectiveAppearance()
-        needsDisplay = true
     }
 }
 

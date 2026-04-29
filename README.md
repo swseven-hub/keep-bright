@@ -13,7 +13,7 @@
 当前发布包为 macOS Universal 版本，文件名类似：
 
 ```text
-KeepBright-1.6.1-macOS-universal.dmg
+KeepBright-1.6.2-macOS-universal.dmg
 ```
 
 下载后打开 DMG，将 `KeepBright.app` 拖到 `Applications` 文件夹，双击运行即可。Release 中也会保留 zip 包作为备用下载。
@@ -36,6 +36,7 @@ KeepBright-1.6.1-macOS-universal.dmg
 - 支持定时快速延长 15 或 30 分钟
 - 支持通知偏好，分别控制状态、计时和电池通知
 - 支持系统设置风格的侧边栏偏好设置窗口
+- 在 macOS 26 上使用原生 Liquid Glass 设置界面
 - 支持首次启动引导
 - 支持 DMG 拖拽安装包
 - 支持关闭每日自动检查更新

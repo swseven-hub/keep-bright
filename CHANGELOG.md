@@ -1,5 +1,21 @@
 # 更新日志
 
+## v1.6.2
+
+### 更新内容
+
+- 将偏好设置窗口升级为 macOS 26 原生 Liquid Glass 视觉。
+- 使用 `NSGlassEffectView` 渲染侧边栏、内容背景和设置分组。
+- 使用 `NSGlassEffectContainerView` 合并玻璃层，降低多块玻璃视图的渲染成本。
+- 操作按钮改为 macOS 26 的 glass bezel 样式。
+- 关于窗口文案同步为 Liquid Glass 偏好设置。
+
+### 验证
+
+- 已通过本地 `./build.sh` 构建。
+- 已验证 Universal Binary 同时包含 `arm64` 和 `x86_64`。
+- 已验证应用签名有效。
+
 ## v1.6.1
 
 ### 更新内容

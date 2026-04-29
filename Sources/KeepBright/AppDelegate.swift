@@ -696,9 +696,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showAbout() {
         let alert = NSAlert()
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.6.1"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.6.2"
         alert.messageText = "保持亮屏 \(version)"
-        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持全局快捷键、菜单栏显示模式、快速延长时间、通知偏好、系统设置风格偏好设置、Universal Binary、DMG 安装包和更新检查。"
+        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持全局快捷键、菜单栏显示模式、快速延长时间、通知偏好、Liquid Glass 偏好设置、Universal Binary、DMG 安装包和更新检查。"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "好")
         alert.runModal()

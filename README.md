@@ -4,6 +4,20 @@
 
 它的目标很简单：像 One Switch 里的“保持屏幕常亮”一样，只做一件事，并且尽量符合 macOS 的原生使用习惯。
 
+## 下载
+
+前往 GitHub Releases 下载最新版本：
+
+[下载 Keep Bright 最新版](https://github.com/swseven-hub/keep-bright/releases/latest)
+
+当前发布包为 macOS Apple Silicon 版本，文件名类似：
+
+```text
+KeepBright-1.0.0-macOS-arm64.zip
+```
+
+下载后解压，将 `KeepBright.app` 拖到“应用程序”文件夹，双击运行即可。
+
 ## 功能
 
 - 启动后自动开启保持亮屏

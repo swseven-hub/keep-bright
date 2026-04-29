@@ -13,7 +13,7 @@
 当前发布包为 macOS Apple Silicon 版本，文件名类似：
 
 ```text
-KeepBright-1.0.0-macOS-arm64.zip
+KeepBright-1.1.0-macOS-arm64.zip
 ```
 
 下载后解压，将 `KeepBright.app` 拖到“应用程序”文件夹，双击运行即可。
@@ -21,6 +21,10 @@ KeepBright-1.0.0-macOS-arm64.zip
 ## 功能
 
 - 启动后自动开启保持亮屏
+- 支持永久、15 分钟、30 分钟、1 小时、2 小时定时模式
+- 定时模式下在菜单栏显示剩余时间
+- 支持开机自启动
+- 开启、关闭和定时结束时发送系统通知
 - 菜单栏常驻，不占用 Dock
 - 点击菜单栏图标可以开启、关闭或退出
 - 退出应用时自动释放系统亮屏请求
@@ -87,8 +91,12 @@ open build/KeepBright.app
 
 - 当前保持亮屏状态
 - 开启或关闭保持亮屏
+- 选择保持时长
+- 开启或关闭开机自启动
 - 关于信息
 - 退出应用
+
+定时模式开启后，菜单栏会显示倒计时。倒计时结束时，应用会自动关闭保持亮屏，并通过系统通知提醒你。
 
 ## 验证是否生效
 
@@ -131,8 +139,11 @@ pid xxxx(KeepBright): PreventUserIdleDisplaySleep named: "Keep Bright"
 核心文件说明：
 
 - `Sources/KeepBright/main.swift`：应用入口
+- `Sources/KeepBright/AwakeDuration.swift`：保持时长选项和持久化
 - `Sources/KeepBright/AppDelegate.swift`：菜单栏图标、菜单和交互逻辑
 - `Sources/KeepBright/DisplaySleepAssertion.swift`：IOKit 亮屏断言封装
+- `Sources/KeepBright/LoginItemManager.swift`：开机自启动管理
+- `Sources/KeepBright/NotificationManager.swift`：系统通知管理
 - `Resources/Info.plist`：应用元信息，包含菜单栏应用配置
 - `Tools/make_icon.swift`：生成 `.icns` 图标资源
 - `build.sh`：无 Xcode 项目的轻量打包脚本
@@ -164,6 +175,10 @@ Keep Bright 使用 AppKit 构建菜单栏应用体验，并通过 `LSUIElement` 
 ### 是否需要辅助功能、屏幕录制或管理员权限？
 
 不需要。应用只使用 macOS 原生电源管理 API，不需要额外隐私权限或管理员权限。
+
+### 为什么开机自启动没有立即生效？
+
+macOS 可能要求你在“系统设置”里批准新的登录项。如果菜单里显示“需要在系统设置中批准”，请打开系统设置并允许 Keep Bright 作为登录项启动。
 
 ## 开发
 

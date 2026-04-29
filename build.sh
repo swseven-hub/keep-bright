@@ -23,9 +23,14 @@ swiftc \
   -target arm64-apple-macosx26.0 \
   -framework AppKit \
   -framework IOKit \
+  -framework ServiceManagement \
+  -framework UserNotifications \
   "$ROOT_DIR/Sources/KeepBright/main.swift" \
   "$ROOT_DIR/Sources/KeepBright/AppDelegate.swift" \
+  "$ROOT_DIR/Sources/KeepBright/AwakeDuration.swift" \
   "$ROOT_DIR/Sources/KeepBright/DisplaySleepAssertion.swift" \
+  "$ROOT_DIR/Sources/KeepBright/LoginItemManager.swift" \
+  "$ROOT_DIR/Sources/KeepBright/NotificationManager.swift" \
   -o "$MACOS_DIR/$APP_NAME"
 
 cp "$ROOT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"

@@ -2,17 +2,26 @@ import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let assertion = DisplaySleepAssertion()
+    private let notifier = NotificationManager()
+
     private var statusItem: NSStatusItem?
-    private let toggleItem = NSMenuItem()
     private let statusItemLabel = NSMenuItem()
+    private let toggleItem = NSMenuItem()
+    private let durationMenu = NSMenu()
+    private let launchAtLoginItem = NSMenuItem()
+
+    private var selectedDuration = AwakeDuration.saved
+    private var activeUntil: Date?
+    private var countdownTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         configureMenuBarItem()
-        setKeepBrightEnabled(true)
+        setKeepBrightEnabled(true, notify: false)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        countdownTimer?.invalidate()
         assertion.disable()
     }
 
@@ -36,8 +45,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         toggleItem.title = "关闭保持亮屏"
         toggleItem.target = self
         toggleItem.action = #selector(toggleKeepBright)
-        toggleItem.keyEquivalent = ""
         menu.addItem(toggleItem)
+
+        let durationItem = NSMenuItem(title: "保持时长", action: nil, keyEquivalent: "")
+        durationItem.submenu = durationMenu
+        configureDurationMenu()
+        menu.addItem(durationItem)
+
+        launchAtLoginItem.title = "开机自启动"
+        launchAtLoginItem.target = self
+        launchAtLoginItem.action = #selector(toggleLaunchAtLogin)
+        menu.addItem(launchAtLoginItem)
+
+        menu.addItem(.separator())
 
         let aboutItem = NSMenuItem(
             title: "关于保持亮屏",
@@ -58,36 +78,221 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(quitItem)
 
         item.menu = menu
+        updateMenuState()
+    }
+
+    private func configureDurationMenu() {
+        durationMenu.removeAllItems()
+
+        for duration in AwakeDuration.allCases {
+            let item = NSMenuItem(
+                title: duration.menuTitle,
+                action: #selector(selectDuration(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = duration.rawValue
+            durationMenu.addItem(item)
+        }
     }
 
     @objc private func toggleKeepBright() {
-        setKeepBrightEnabled(!assertion.isActive)
+        setKeepBrightEnabled(!assertion.isActive, notify: true)
     }
 
-    private func setKeepBrightEnabled(_ isEnabled: Bool) {
-        if isEnabled {
-            _ = assertion.enable()
-        } else {
-            assertion.disable()
+    @objc private func selectDuration(_ sender: NSMenuItem) {
+        guard let rawValue = sender.representedObject as? Int,
+              let duration = AwakeDuration(rawValue: rawValue) else {
+            return
+        }
+
+        selectedDuration = duration
+        selectedDuration.save()
+
+        if assertion.isActive {
+            startTimedSession(for: duration)
+            notifier.send(
+                title: "保持时长已更新",
+                body: duration.notificationBody
+            )
         }
 
         updateMenuState()
+    }
 
-        if isEnabled, !assertion.isActive {
-            showAssertionError()
+    @objc private func toggleLaunchAtLogin() {
+        do {
+            try LoginItemManager.setEnabled(!LoginItemManager.isEnabled)
+            updateMenuState()
+
+            let isEnabled = LoginItemManager.isEnabled
+            notifier.send(
+                title: isEnabled ? "已开启开机自启动" : "已关闭开机自启动",
+                body: isEnabled ? "Keep Bright 会在你登录 macOS 后自动启动。" : "Keep Bright 不会在登录后自动启动。"
+            )
+        } catch {
+            updateMenuState()
+            showLoginItemError(error)
         }
+    }
+
+    private func setKeepBrightEnabled(_ isEnabled: Bool, notify: Bool) {
+        if isEnabled {
+            guard assertion.enable() else {
+                stopCountdown()
+                updateMenuState()
+                showAssertionError()
+                return
+            }
+
+            startTimedSession(for: selectedDuration)
+
+            if notify {
+                notifier.send(
+                    title: "保持亮屏已开启",
+                    body: selectedDuration.notificationBody
+                )
+            }
+        } else {
+            stopCountdown()
+            assertion.disable()
+
+            if notify {
+                notifier.send(
+                    title: "保持亮屏已关闭",
+                    body: "屏幕将恢复系统默认节能策略。"
+                )
+            }
+        }
+
+        updateMenuState()
+    }
+
+    private func startTimedSession(for duration: AwakeDuration) {
+        stopCountdown()
+
+        guard let seconds = duration.seconds else {
+            updateMenuState()
+            return
+        }
+
+        activeUntil = Date().addingTimeInterval(seconds)
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            self?.tickCountdown()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        countdownTimer = timer
+        updateMenuState()
+    }
+
+    private func stopCountdown() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+        activeUntil = nil
+    }
+
+    private func tickCountdown() {
+        guard assertion.isActive else {
+            stopCountdown()
+            updateMenuState()
+            return
+        }
+
+        guard remainingSeconds > 0 else {
+            stopCountdown()
+            assertion.disable()
+            updateMenuState()
+            notifier.send(
+                title: "定时保持亮屏已结束",
+                body: "屏幕已恢复系统默认节能策略。"
+            )
+            return
+        }
+
+        updateMenuState()
+    }
+
+    private var remainingSeconds: Int {
+        guard let activeUntil else {
+            return 0
+        }
+
+        return max(0, Int(ceil(activeUntil.timeIntervalSinceNow)))
     }
 
     private func updateMenuState() {
         let isEnabled = assertion.isActive
-        statusItemLabel.title = isEnabled ? "保持亮屏：已开启" : "保持亮屏：已关闭"
+        statusItemLabel.title = statusText(isEnabled: isEnabled)
         toggleItem.title = isEnabled ? "关闭保持亮屏" : "开启保持亮屏"
         toggleItem.state = isEnabled ? .on : .off
 
+        for item in durationMenu.items {
+            guard let rawValue = item.representedObject as? Int,
+                  let duration = AwakeDuration(rawValue: rawValue) else {
+                continue
+            }
+            item.state = duration == selectedDuration ? .on : .off
+        }
+
+        updateLaunchAtLoginItem()
+
         if let button = statusItem?.button {
             button.image = statusImage(isEnabled: isEnabled)
-            button.toolTip = isEnabled ? "保持亮屏已开启" : "保持亮屏已关闭"
+            button.title = menuBarTitle(isEnabled: isEnabled)
+            button.imagePosition = button.title.isEmpty ? .imageOnly : .imageLeading
+            button.toolTip = statusText(isEnabled: isEnabled)
+            button.setAccessibilityLabel(statusText(isEnabled: isEnabled))
         }
+    }
+
+    private func updateLaunchAtLoginItem() {
+        switch LoginItemManager.status {
+        case .enabled:
+            launchAtLoginItem.title = "开机自启动"
+            launchAtLoginItem.state = .on
+        case .requiresApproval:
+            launchAtLoginItem.title = "开机自启动（需要在系统设置中批准）"
+            launchAtLoginItem.state = .mixed
+        case .notRegistered, .notFound:
+            launchAtLoginItem.title = "开机自启动"
+            launchAtLoginItem.state = .off
+        @unknown default:
+            launchAtLoginItem.title = "开机自启动"
+            launchAtLoginItem.state = .off
+        }
+    }
+
+    private func statusText(isEnabled: Bool) -> String {
+        guard isEnabled else {
+            return "保持亮屏：已关闭"
+        }
+
+        if activeUntil != nil {
+            return "保持亮屏：剩余 \(formattedRemainingTime())"
+        }
+
+        return "保持亮屏：已开启（永久）"
+    }
+
+    private func menuBarTitle(isEnabled: Bool) -> String {
+        guard isEnabled, activeUntil != nil else {
+            return ""
+        }
+
+        return formattedRemainingTime()
+    }
+
+    private func formattedRemainingTime() -> String {
+        let seconds = remainingSeconds
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        let remainingSeconds = seconds % 60
+
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, remainingSeconds)
+        }
+
+        return String(format: "%02d:%02d", minutes, remainingSeconds)
     }
 
     private func statusImage(isEnabled: Bool) -> NSImage? {
@@ -101,8 +306,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showAbout() {
         let alert = NSAlert()
-        alert.messageText = "保持亮屏"
-        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，退出应用时会自动恢复系统默认行为。"
+        alert.messageText = "保持亮屏 1.1.0"
+        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持定时关闭、菜单栏倒计时、系统通知和开机自启动。"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "好")
         alert.runModal()
@@ -112,6 +317,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let alert = NSAlert()
         alert.messageText = "无法开启保持亮屏"
         alert.informativeText = assertion.lastError ?? "系统没有接受本次亮屏请求。"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "好")
+        alert.runModal()
+    }
+
+    private func showLoginItemError(_ error: Error) {
+        let alert = NSAlert()
+        alert.messageText = "无法更新开机自启动"
+        alert.informativeText = "macOS 没有接受本次登录项设置。你可以将应用移动到“应用程序”文件夹后重试。\n\n\(error.localizedDescription)"
         alert.alertStyle = .warning
         alert.addButton(withTitle: "好")
         alert.runModal()

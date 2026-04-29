@@ -4,6 +4,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let assertion = DisplaySleepAssertion()
     private let notifier = NotificationManager()
     private let updateChecker = UpdateChecker()
+    private let batteryMonitor = BatteryMonitor()
 
     private var statusItem: NSStatusItem?
     private let statusItemLabel = NSMenuItem()
@@ -11,6 +12,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let durationMenu = NSMenu()
     private let launchAtLoginItem = NSMenuItem()
     private let checkForUpdatesItem = NSMenuItem()
+    private let preferencesItem = NSMenuItem()
+    private var preferencesWindowController: PreferencesWindowController?
 
     private var selectedDuration = AwakeDuration.saved
     private var activeUntil: Date?
@@ -18,13 +21,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        configureBatteryProtection()
         configureMenuBarItem()
-        setKeepBrightEnabled(true, notify: false)
+
+        if AppPreferences.enableOnLaunch {
+            setKeepBrightEnabled(true, notify: false)
+        } else {
+            updateMenuState()
+        }
+
         checkForUpdatesAutomaticallyIfNeeded()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         countdownTimer?.invalidate()
+        batteryMonitor.stop()
         assertion.disable()
     }
 
@@ -61,6 +72,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(launchAtLoginItem)
 
         menu.addItem(.separator())
+
+        preferencesItem.title = "偏好设置..."
+        preferencesItem.target = self
+        preferencesItem.action = #selector(showPreferences)
+        preferencesItem.keyEquivalent = ","
+        menu.addItem(preferencesItem)
 
         checkForUpdatesItem.title = "检查更新..."
         checkForUpdatesItem.target = self
@@ -144,6 +161,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc private func showPreferences() {
+        if preferencesWindowController == nil {
+            let controller = PreferencesWindowController()
+            controller.onPreferencesChanged = { [weak self] in
+                self?.preferencesDidChange()
+            }
+            preferencesWindowController = controller
+        }
+
+        preferencesWindowController?.show()
+    }
+
     @objc private func checkForUpdatesManually() {
         checkForUpdatesItem.isEnabled = false
         checkForUpdatesItem.title = "正在检查更新..."
@@ -161,6 +190,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setKeepBrightEnabled(_ isEnabled: Bool, notify: Bool) {
         if isEnabled {
+            if let batteryState = batteryMonitor.shouldPreventEnabling() {
+                stopCountdown()
+                assertion.disable()
+                updateMenuState()
+
+                if notify {
+                    showBatteryProtectionAlert(batteryState)
+                }
+                return
+            }
+
             guard assertion.enable() else {
                 stopCountdown()
                 updateMenuState()
@@ -189,6 +229,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         updateMenuState()
+    }
+
+    private func configureBatteryProtection() {
+        batteryMonitor.onProtectionTriggered = { [weak self] state in
+            DispatchQueue.main.async {
+                self?.applyBatteryProtection(state)
+            }
+        }
+        batteryMonitor.start()
+    }
+
+    private func preferencesDidChange() {
+        if let state = batteryMonitor.shouldPreventEnabling(), assertion.isActive {
+            applyBatteryProtection(state)
+        }
+
+        updateMenuState()
+    }
+
+    private func applyBatteryProtection(_ state: BatteryState) {
+        guard assertion.isActive else {
+            return
+        }
+
+        stopCountdown()
+        assertion.disable()
+        updateMenuState()
+
+        let chargeText = state.chargePercent.map { "\($0)%" } ?? "当前"
+        notifier.send(
+            title: "已因低电量关闭保持亮屏",
+            body: "电量 \(chargeText)，低于 \(AppPreferences.batteryProtectionThreshold)% 阈值。"
+        )
     }
 
     private func startTimedSession(for duration: AwakeDuration) {
@@ -387,8 +460,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showAbout() {
         let alert = NSAlert()
-        alert.messageText = "保持亮屏 1.2.0"
-        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持定时关闭、菜单栏倒计时、系统通知、开机自启动和更新检查。"
+        alert.messageText = "保持亮屏 1.3.0"
+        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持偏好设置、默认启动状态、电池保护、定时关闭、菜单栏倒计时、系统通知、开机自启动和更新检查。"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "好")
         alert.runModal()
@@ -407,6 +480,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let alert = NSAlert()
         alert.messageText = "无法更新开机自启动"
         alert.informativeText = "macOS 没有接受本次登录项设置。你可以将应用移动到“应用程序”文件夹后重试。\n\n\(error.localizedDescription)"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "好")
+        alert.runModal()
+    }
+
+    private func showBatteryProtectionAlert(_ state: BatteryState) {
+        let alert = NSAlert()
+        alert.messageText = "电池保护已阻止保持亮屏"
+        let chargeText = state.chargePercent.map { "\($0)%" } ?? "当前"
+        alert.informativeText = "电量 \(chargeText)，低于 \(AppPreferences.batteryProtectionThreshold)% 阈值。你可以连接电源，或在偏好设置中调整电池保护。"
         alert.alertStyle = .warning
         alert.addButton(withTitle: "好")
         alert.runModal()

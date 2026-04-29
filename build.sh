@@ -27,10 +27,13 @@ swiftc \
   -framework UserNotifications \
   "$ROOT_DIR/Sources/KeepBright/main.swift" \
   "$ROOT_DIR/Sources/KeepBright/AppDelegate.swift" \
+  "$ROOT_DIR/Sources/KeepBright/AppPreferences.swift" \
   "$ROOT_DIR/Sources/KeepBright/AwakeDuration.swift" \
+  "$ROOT_DIR/Sources/KeepBright/BatteryMonitor.swift" \
   "$ROOT_DIR/Sources/KeepBright/DisplaySleepAssertion.swift" \
   "$ROOT_DIR/Sources/KeepBright/LoginItemManager.swift" \
   "$ROOT_DIR/Sources/KeepBright/NotificationManager.swift" \
+  "$ROOT_DIR/Sources/KeepBright/PreferencesWindowController.swift" \
   "$ROOT_DIR/Sources/KeepBright/UpdateChecker.swift" \
   -o "$MACOS_DIR/$APP_NAME"
 

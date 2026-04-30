@@ -38,8 +38,19 @@ hdiutil attach "$DMG_RW" \
   -noverify \
   -noautoopen >/dev/null
 
+detach_dmg() {
+  for ATTEMPT in 1 2 3 4 5; do
+    if hdiutil detach "$DMG_MOUNT_DIR" -quiet 2>/dev/null; then
+      return 0
+    fi
+    sleep "$ATTEMPT"
+  done
+
+  hdiutil detach "$DMG_MOUNT_DIR" -force -quiet 2>/dev/null || true
+}
+
 cleanup() {
-  hdiutil detach "$DMG_MOUNT_DIR" -quiet 2>/dev/null || true
+  detach_dmg
 }
 trap cleanup EXIT
 
@@ -69,11 +80,22 @@ APPLESCRIPT
 sync
 cleanup
 trap - EXIT
+sleep 2
 
-hdiutil convert "$DMG_RW" \
-  -format UDZO \
-  -imagekey zlib-level=9 \
-  -o "$DMG_FINAL" >/dev/null
+for ATTEMPT in 1 2 3 4 5; do
+  if hdiutil convert "$DMG_RW" \
+    -format UDZO \
+    -imagekey zlib-level=9 \
+    -o "$DMG_FINAL" >/dev/null; then
+    break
+  fi
+
+  if [ "$ATTEMPT" = 5 ]; then
+    exit 1
+  fi
+
+  sleep "$((ATTEMPT * 2))"
+done
 
 rm -rf "$DMG_STAGING_DIR" "$DMG_MOUNT_DIR" "$DMG_RW"
 

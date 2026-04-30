@@ -57,24 +57,27 @@ trap cleanup EXIT
 mkdir -p "$DMG_MOUNT_DIR/.background"
 swift "$ROOT_DIR/Tools/make_dmg_background.swift" "$DMG_MOUNT_DIR/.background/background.png"
 
-osascript >/dev/null <<APPLESCRIPT || true
-set dmgFolder to POSIX file "$DMG_MOUNT_DIR" as alias
-tell application "Finder"
-    open dmgFolder
-    set current view of container window of dmgFolder to icon view
-    set toolbar visible of container window of dmgFolder to false
-    set statusbar visible of container window of dmgFolder to false
-    set the bounds of container window of dmgFolder to {100, 100, 660, 460}
-    set viewOptions to the icon view options of container window of dmgFolder
-    set arrangement of viewOptions to not arranged
-    set icon size of viewOptions to 96
-    set background picture of viewOptions to file ".background:background.png" of dmgFolder
-    set position of item "$APP_NAME.app" of dmgFolder to {150, 190}
-    set position of item "Applications" of dmgFolder to {410, 190}
-    update dmgFolder without registering applications
-    delay 1
-    close container window of dmgFolder
-end tell
+osascript - "$DMG_MOUNT_DIR" "$APP_NAME" >/dev/null <<'APPLESCRIPT' || true
+on run argv
+    set dmgFolder to POSIX file (item 1 of argv) as alias
+    set appItemName to (item 2 of argv) & ".app"
+    tell application "Finder"
+        open dmgFolder
+        set current view of container window of dmgFolder to icon view
+        set toolbar visible of container window of dmgFolder to false
+        set statusbar visible of container window of dmgFolder to false
+        set the bounds of container window of dmgFolder to {100, 100, 660, 460}
+        set viewOptions to the icon view options of container window of dmgFolder
+        set arrangement of viewOptions to not arranged
+        set icon size of viewOptions to 96
+        set background picture of viewOptions to file ".background:background.png" of dmgFolder
+        set position of item appItemName of dmgFolder to {150, 190}
+        set position of item "Applications" of dmgFolder to {410, 190}
+        update dmgFolder without registering applications
+        delay 1
+        close container window of dmgFolder
+    end tell
+end run
 APPLESCRIPT
 
 sync

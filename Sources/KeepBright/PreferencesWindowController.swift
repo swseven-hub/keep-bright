@@ -113,7 +113,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         window.isMovableByWindowBackground = true
         window.backgroundColor = .clear
         window.isReleasedWhenClosed = false
-        window.minSize = NSSize(width: 760, height: 540)
+        window.minSize = NSSize(width: 800, height: 560)
         window.center()
 
         super.init(window: window)
@@ -226,13 +226,15 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let glassView = NSGlassEffectView()
         glassView.style = .regular
         glassView.cornerRadius = 0
-        glassView.tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.34)
+        glassView.tintColor = NSColor.windowBackgroundColor.withAlphaComponent(0.66)
         glassView.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
         glassView.contentView = container
 
+        let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.56)
+        readabilityBackdrop.translatesAutoresizingMaskIntoConstraints = false
         let header = makeSidebarHeader()
         let scrollView = NSScrollView()
         scrollView.drawsBackground = false
@@ -255,6 +257,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         sidebarTable.reloadData()
 
         scrollView.documentView = sidebarTable
+        container.addSubview(readabilityBackdrop)
         container.addSubview(header)
         container.addSubview(scrollView)
 
@@ -263,6 +266,11 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             container.trailingAnchor.constraint(equalTo: glassView.trailingAnchor),
             container.topAnchor.constraint(equalTo: glassView.topAnchor),
             container.bottomAnchor.constraint(equalTo: glassView.bottomAnchor),
+
+            readabilityBackdrop.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            readabilityBackdrop.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            readabilityBackdrop.topAnchor.constraint(equalTo: container.topAnchor),
+            readabilityBackdrop.bottomAnchor.constraint(equalTo: container.bottomAnchor),
 
             header.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
             header.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
@@ -311,14 +319,14 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let glassView = NSGlassEffectView()
         glassView.style = .regular
         glassView.cornerRadius = 0
-        glassView.tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.54)
+        glassView.tintColor = NSColor.windowBackgroundColor.withAlphaComponent(0.72)
         glassView.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
         glassView.contentView = container
 
-        let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.48)
+        let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.66)
         readabilityBackdrop.translatesAutoresizingMaskIntoConstraints = false
 
         let headerView = makePageHeaderView()
@@ -380,10 +388,10 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let titleStack = NSStackView()
         titleStack.orientation = .vertical
         titleStack.alignment = .leading
-        titleStack.spacing = 5
+        titleStack.spacing = 4
         titleStack.translatesAutoresizingMaskIntoConstraints = false
 
-        pageTitleLabel.font = .systemFont(ofSize: 27, weight: .semibold)
+        pageTitleLabel.font = .systemFont(ofSize: 26, weight: .semibold)
         pageTitleLabel.textColor = .labelColor
         pageTitleLabel.lineBreakMode = .byTruncatingTail
 
@@ -669,8 +677,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let title = NSTextField(labelWithString: "Keep Bright")
         title.font = .systemFont(ofSize: 18, weight: .semibold)
 
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.7.1"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "13"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.7.2"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "14"
         let subtitle = NSTextField(labelWithString: "版本 \(version)（\(build)）")
         subtitle.font = .systemFont(ofSize: 12, weight: .regular)
         subtitle.textColor = .secondaryLabelColor
@@ -702,12 +710,12 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let container = NSStackView()
         container.orientation = .vertical
         container.alignment = .width
-        container.spacing = 7
+        container.spacing = 8
         container.translatesAutoresizingMaskIntoConstraints = false
 
         let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 11, weight: .semibold)
-        titleLabel.textColor = .tertiaryLabelColor
+        titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        titleLabel.textColor = .secondaryLabelColor
         container.addArrangedSubview(titleLabel)
 
         let group = SettingsGroupView()
@@ -750,7 +758,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let row = NSView()
         row.translatesAutoresizingMaskIntoConstraints = false
 
-        let iconView = SymbolBadgeView(size: 30, pointSize: 14, backgroundAlpha: 0.1, cornerRadius: 8)
+        let iconView = SymbolBadgeView(size: 30, pointSize: 14, backgroundAlpha: 0.13, cornerRadius: 8)
         iconView.configure(symbolName: symbolName)
 
         let textStack = NSStackView()
@@ -762,14 +770,17 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         let detailLabel = NSTextField(wrappingLabelWithString: detail)
         detailLabel.font = .systemFont(ofSize: 11, weight: .regular)
         detailLabel.textColor = .secondaryLabelColor
         detailLabel.maximumNumberOfLines = 2
+        detailLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         textStack.addArrangedSubview(titleLabel)
         textStack.addArrangedSubview(detailLabel)
+        textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         control.translatesAutoresizingMaskIntoConstraints = false
         control.setContentHuggingPriority(.required, for: .horizontal)
@@ -780,16 +791,18 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         row.addSubview(control)
 
         NSLayoutConstraint.activate([
-            row.heightAnchor.constraint(greaterThanOrEqualToConstant: 70),
+            row.heightAnchor.constraint(greaterThanOrEqualToConstant: 74),
 
-            iconView.leadingAnchor.constraint(equalTo: row.leadingAnchor, constant: 16),
+            iconView.leadingAnchor.constraint(equalTo: row.leadingAnchor, constant: 18),
             iconView.centerYAnchor.constraint(equalTo: row.centerYAnchor),
 
             textStack.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
             textStack.trailingAnchor.constraint(lessThanOrEqualTo: control.leadingAnchor, constant: -20),
+            textStack.topAnchor.constraint(greaterThanOrEqualTo: row.topAnchor, constant: 14),
+            textStack.bottomAnchor.constraint(lessThanOrEqualTo: row.bottomAnchor, constant: -14),
             textStack.centerYAnchor.constraint(equalTo: row.centerYAnchor),
 
-            control.trailingAnchor.constraint(equalTo: row.trailingAnchor, constant: -16),
+            control.trailingAnchor.constraint(equalTo: row.trailingAnchor, constant: -18),
             control.centerYAnchor.constraint(equalTo: row.centerYAnchor)
         ])
 
@@ -1168,8 +1181,11 @@ private final class SidebarRowView: NSTableRowView {
 
         let rect = bounds.insetBy(dx: 5, dy: 2)
         let path = NSBezierPath(roundedRect: rect, xRadius: 9, yRadius: 9)
-        NSColor.controlAccentColor.withAlphaComponent(0.18).setFill()
+        NSColor.controlAccentColor.withAlphaComponent(0.22).setFill()
         path.fill()
+        NSColor.controlAccentColor.withAlphaComponent(0.24).setStroke()
+        path.lineWidth = 0.8
+        path.stroke()
     }
 }
 
@@ -1234,13 +1250,13 @@ private final class SymbolBadgeView: NSView {
 
 private final class SettingsGroupView: NSGlassEffectView {
     let contentContainer = NSView()
-    private let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.42)
+    private let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.58)
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         style = .regular
         cornerRadius = 12
-        tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.58)
+        tintColor = NSColor.windowBackgroundColor.withAlphaComponent(0.74)
         wantsLayer = true
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
 
@@ -1281,8 +1297,8 @@ private final class SettingsGroupView: NSGlassEffectView {
     }
 
     private func updateLayerStyling() {
-        layer?.borderWidth = 0.7
-        layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.28).cgColor
+        layer?.borderWidth = 0.8
+        layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.34).cgColor
     }
 }
 
@@ -1306,7 +1322,10 @@ private final class ReadabilityBackdropView: NSView {
     }
 
     private func updateLayerColor() {
-        layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(alpha).cgColor
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let baseColor = isDark ? NSColor(calibratedWhite: 0.08, alpha: 1) : NSColor.windowBackgroundColor
+        let effectiveAlpha = isDark ? min(alpha + 0.06, 0.9) : alpha
+        layer?.backgroundColor = baseColor.withAlphaComponent(effectiveAlpha).cgColor
     }
 }
 

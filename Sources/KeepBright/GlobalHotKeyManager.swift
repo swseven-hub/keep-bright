@@ -42,7 +42,7 @@ final class GlobalHotKeyManager {
             return noErr
         }
 
-        InstallEventHandler(
+        let handlerStatus = InstallEventHandler(
             GetApplicationEventTarget(),
             handler,
             1,
@@ -50,10 +50,14 @@ final class GlobalHotKeyManager {
             selfPointer,
             &eventHandlerRef
         )
+        guard handlerStatus == noErr else {
+            self.callback = nil
+            return
+        }
 
         let hotKeyID = EventHotKeyID(signature: Self.hotKeySignature, id: 1)
         let modifiers = UInt32(cmdKey | optionKey)
-        RegisterEventHotKey(
+        let hotKeyStatus = RegisterEventHotKey(
             UInt32(kVK_ANSI_K),
             modifiers,
             hotKeyID,
@@ -61,6 +65,10 @@ final class GlobalHotKeyManager {
             0,
             &hotKeyRef
         )
+        guard hotKeyStatus == noErr else {
+            unregister()
+            return
+        }
     }
 
     func unregister() {

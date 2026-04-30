@@ -65,11 +65,7 @@ final class AutomationManager {
             }
         ]
 
-        let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
-            self?.evaluate()
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        self.timer = timer
+        refreshPollingTimer()
         evaluate()
     }
 
@@ -86,6 +82,7 @@ final class AutomationManager {
     }
 
     func evaluateNow() {
+        refreshPollingTimer()
         evaluate()
     }
 
@@ -100,6 +97,10 @@ final class AutomationManager {
     }
 
     private func currentEvaluation() -> AutomationEvaluation {
+        guard hasEnabledAutomation else {
+            return .inactive
+        }
+
         var triggers: [AutomationTrigger] = []
 
         if AppPreferences.automationAppRulesEnabled, activeAppMatchesRules() {
@@ -119,6 +120,45 @@ final class AutomationManager {
         }
 
         return AutomationEvaluation(triggers: triggers)
+    }
+
+    private var hasEnabledAutomation: Bool {
+        AppPreferences.automationAppRulesEnabled
+            || AppPreferences.automationFullscreenEnabled
+            || AppPreferences.automationExternalDisplayEnabled
+            || AppPreferences.automationPowerAdapterEnabled
+    }
+
+    private var preferredPollingInterval: TimeInterval? {
+        if AppPreferences.automationFullscreenEnabled {
+            return 5
+        }
+
+        if AppPreferences.automationPowerAdapterEnabled {
+            return 60
+        }
+
+        return nil
+    }
+
+    private func refreshPollingTimer() {
+        let interval = preferredPollingInterval
+        if timer?.timeInterval == interval {
+            return
+        }
+
+        timer?.invalidate()
+        timer = nil
+
+        guard let interval else {
+            return
+        }
+
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            self?.evaluate()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     private func activeAppMatchesRules() -> Bool {

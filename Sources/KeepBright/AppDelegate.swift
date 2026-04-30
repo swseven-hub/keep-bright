@@ -7,6 +7,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let batteryMonitor = BatteryMonitor()
     private let hotKeyManager = GlobalHotKeyManager()
     private let automationManager = AutomationManager()
+    private lazy var enabledStatusImage = makeStatusImage(isEnabled: true)
+    private lazy var disabledStatusImage = makeStatusImage(isEnabled: false)
 
     private var statusItem: NSStatusItem?
     private let statusItemLabel = NSMenuItem()
@@ -496,11 +498,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         activeUntil = Date().addingTimeInterval(seconds)
-        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
-            self?.tickCountdown()
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        countdownTimer = timer
+        startCountdownTimerIfNeeded()
         updateMenuState()
     }
 
@@ -508,6 +506,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         countdownTimer?.invalidate()
         countdownTimer = nil
         activeUntil = nil
+    }
+
+    private func startCountdownTimerIfNeeded() {
+        guard countdownTimer == nil else {
+            return
+        }
+
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            self?.tickCountdown()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        countdownTimer = timer
     }
 
     private func tickCountdown() {
@@ -538,11 +548,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if activeUntil == nil {
             activeUntil = Date()
-            let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
-                self?.tickCountdown()
-            }
-            RunLoop.main.add(timer, forMode: .common)
-            countdownTimer = timer
+            startCountdownTimerIfNeeded()
         }
 
         activeUntil = max(activeUntil ?? Date(), Date()).addingTimeInterval(seconds)
@@ -563,7 +569,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateMenuState() {
         let isEnabled = assertion.isActive
-        statusItemLabel.title = statusText(isEnabled: isEnabled)
+        let currentStatusText = statusText(isEnabled: isEnabled)
+        statusItemLabel.title = currentStatusText
         automationStatusItem.title = automationStatusText()
         toggleItem.title = isEnabled ? "关闭保持亮屏" : "开启保持亮屏"
         toggleItem.state = isEnabled ? .on : .off
@@ -587,8 +594,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = statusImage(isEnabled: isEnabled)
             button.title = menuBarTitle(isEnabled: isEnabled)
             button.imagePosition = button.title.isEmpty ? .imageOnly : .imageLeading
-            button.toolTip = statusText(isEnabled: isEnabled)
-            button.setAccessibilityLabel(statusText(isEnabled: isEnabled))
+            button.toolTip = currentStatusText
+            button.setAccessibilityLabel(currentStatusText)
         }
     }
 
@@ -792,6 +799,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func statusImage(isEnabled: Bool) -> NSImage? {
+        isEnabled ? enabledStatusImage : disabledStatusImage
+    }
+
+    private func makeStatusImage(isEnabled: Bool) -> NSImage? {
         let symbolName = isEnabled ? "cup.and.saucer.fill" : "cup.and.saucer"
         let configuration = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
         let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "保持亮屏")?
@@ -802,7 +813,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showAbout() {
         let alert = NSAlert()
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.7.1"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.7.2"
         alert.messageText = "保持亮屏 \(version)"
         alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持自动化规则、全局快捷键、菜单栏显示模式、快速延长时间、通知偏好、Liquid Glass 偏好设置、Universal Binary、DMG 安装包和更新检查。"
         alert.alertStyle = .informational

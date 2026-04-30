@@ -218,7 +218,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             rootReadability.bottomAnchor.constraint(equalTo: rootView.bottomAnchor),
 
             sidebarView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor, constant: 16),
-            sidebarView.topAnchor.constraint(equalTo: rootView.topAnchor, constant: 52),
+            sidebarView.topAnchor.constraint(equalTo: rootView.topAnchor, constant: 44),
             sidebarView.bottomAnchor.constraint(equalTo: rootView.bottomAnchor, constant: -16),
             sidebarView.widthAnchor.constraint(equalToConstant: 268),
 
@@ -695,8 +695,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         title.font = .systemFont(ofSize: 30, weight: .bold)
         title.alignment = .center
 
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.7.6"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "18"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.7.7"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "19"
         let subtitle = NSTextField(labelWithString: "Version \(version) Build \(build)")
         subtitle.font = .systemFont(ofSize: 17, weight: .semibold)
         subtitle.textColor = .secondaryLabelColor
@@ -1416,12 +1416,13 @@ private final class SymbolBadgeView: NSView {
 
 private final class SettingsGroupView: NSGlassEffectView {
     let contentContainer = NSView()
+    private let groupCornerRadius: CGFloat = 16
     private let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.50, cornerRadius: 16)
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         style = .regular
-        cornerRadius = 16
+        cornerRadius = groupCornerRadius
         tintColor = NSColor.windowBackgroundColor.withAlphaComponent(0.48)
         wantsLayer = true
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
@@ -1460,18 +1461,33 @@ private final class SettingsGroupView: NSGlassEffectView {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func layout() {
+        super.layout()
+        layer?.shadowPath = CGPath(
+            roundedRect: bounds,
+            cornerWidth: groupCornerRadius,
+            cornerHeight: groupCornerRadius,
+            transform: nil
+        )
+    }
+
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         updateLayerStyling()
     }
 
     private func updateLayerStyling() {
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         layer?.masksToBounds = false
-        layer?.borderWidth = 0
-        layer?.shadowColor = NSColor.black.withAlphaComponent(0.05).cgColor
+        layer?.cornerRadius = groupCornerRadius
+        layer?.borderWidth = 0.75
+        layer?.borderColor = (isDark
+            ? NSColor.white.withAlphaComponent(0.10)
+            : NSColor.black.withAlphaComponent(0.08)).cgColor
+        layer?.shadowColor = NSColor.black.withAlphaComponent(isDark ? 0.24 : 0.10).cgColor
         layer?.shadowOpacity = 1
-        layer?.shadowRadius = 5
-        layer?.shadowOffset = NSSize(width: 0, height: -1)
+        layer?.shadowRadius = 11
+        layer?.shadowOffset = NSSize(width: 0, height: -2)
     }
 }
 

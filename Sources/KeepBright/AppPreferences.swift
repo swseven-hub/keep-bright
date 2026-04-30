@@ -12,9 +12,25 @@ enum AppPreferences {
         static let notifyStatusChanges = "NotifyStatusChanges"
         static let notifyTimerEvents = "NotifyTimerEvents"
         static let notifyBatteryEvents = "NotifyBatteryEvents"
+        static let automationAppRulesEnabled = "AutomationAppRulesEnabled"
+        static let automationFullscreenEnabled = "AutomationFullscreenEnabled"
+        static let automationExternalDisplayEnabled = "AutomationExternalDisplayEnabled"
+        static let automationPowerAdapterEnabled = "AutomationPowerAdapterEnabled"
+        static let automationAppRules = "AutomationAppRules"
         static let customDurationMinutes = "CustomDurationMinutes"
         static let hasSeenFirstLaunchGuide = "HasSeenFirstLaunchGuide"
     }
+
+    static let defaultAutomationAppRules = [
+        "Keynote",
+        "Microsoft PowerPoint",
+        "zoom.us",
+        "Zoom",
+        "Microsoft Teams",
+        "腾讯会议",
+        "QuickTime Player",
+        "VLC"
+    ]
 
     static var enableOnLaunch: Bool {
         get {
@@ -155,6 +171,58 @@ enum AppPreferences {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: Key.notifyBatteryEvents)
+        }
+    }
+
+    static var automationAppRulesEnabled: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: Key.automationAppRulesEnabled)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.automationAppRulesEnabled)
+        }
+    }
+
+    static var automationFullscreenEnabled: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: Key.automationFullscreenEnabled)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.automationFullscreenEnabled)
+        }
+    }
+
+    static var automationExternalDisplayEnabled: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: Key.automationExternalDisplayEnabled)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.automationExternalDisplayEnabled)
+        }
+    }
+
+    static var automationPowerAdapterEnabled: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: Key.automationPowerAdapterEnabled)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.automationPowerAdapterEnabled)
+        }
+    }
+
+    static var automationAppRules: [String] {
+        get {
+            guard UserDefaults.standard.object(forKey: Key.automationAppRules) != nil else {
+                return defaultAutomationAppRules
+            }
+
+            return UserDefaults.standard.stringArray(forKey: Key.automationAppRules) ?? defaultAutomationAppRules
+        }
+        set {
+            let rules = newValue
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            UserDefaults.standard.set(rules, forKey: Key.automationAppRules)
         }
     }
 

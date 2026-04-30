@@ -16,6 +16,7 @@ SOURCES=(
   "$ROOT_DIR/Sources/KeepBright/main.swift"
   "$ROOT_DIR/Sources/KeepBright/AppDelegate.swift"
   "$ROOT_DIR/Sources/KeepBright/AppPreferences.swift"
+  "$ROOT_DIR/Sources/KeepBright/AutomationManager.swift"
   "$ROOT_DIR/Sources/KeepBright/AwakeDuration.swift"
   "$ROOT_DIR/Sources/KeepBright/BatteryMonitor.swift"
   "$ROOT_DIR/Sources/KeepBright/DisplaySleepAssertion.swift"

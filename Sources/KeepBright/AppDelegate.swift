@@ -6,9 +6,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let updateChecker = UpdateChecker()
     private let batteryMonitor = BatteryMonitor()
     private let hotKeyManager = GlobalHotKeyManager()
+    private let automationManager = AutomationManager()
 
     private var statusItem: NSStatusItem?
     private let statusItemLabel = NSMenuItem()
+    private let automationStatusItem = NSMenuItem()
     private let toggleItem = NSMenuItem()
     private let durationMenu = NSMenu()
     private let extend15Item = NSMenuItem()
@@ -24,6 +26,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var countdownTimer: Timer?
     private var wasDisabledByBatteryProtection = false
     private var didSendLowBatteryNotification = false
+    private var automationEvaluation = AutomationEvaluation.inactive
+    private var isEnabledByAutomation = false
+    private var isAutomationSuppressedUntilInactive = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -37,12 +42,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             updateMenuState()
         }
 
+        configureAutomation()
+
         showFirstLaunchGuideIfNeeded()
         checkForUpdatesAutomaticallyIfNeeded()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         countdownTimer?.invalidate()
+        automationManager.stop()
         batteryMonitor.stop()
         hotKeyManager.unregister()
         assertion.disable()
@@ -63,6 +71,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItemLabel.title = "保持亮屏：准备开启"
         statusItemLabel.isEnabled = false
         menu.addItem(statusItemLabel)
+
+        automationStatusItem.title = "自动化：未触发"
+        automationStatusItem.isEnabled = false
+        menu.addItem(automationStatusItem)
         menu.addItem(.separator())
 
         toggleItem.title = "关闭保持亮屏"
@@ -158,6 +170,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func toggleKeepBright() {
+        if assertion.isActive, automationEvaluation.isActive {
+            isAutomationSuppressedUntilInactive = true
+        } else if !assertion.isActive {
+            isAutomationSuppressedUntilInactive = false
+        }
+        isEnabledByAutomation = false
         setKeepBrightEnabled(!assertion.isActive, notify: true)
     }
 
@@ -245,6 +263,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setKeepBrightEnabled(_ isEnabled: Bool, notify: Bool) {
+        isEnabledByAutomation = false
+
         if isEnabled {
             if let batteryState = batteryMonitor.shouldPreventEnabling() {
                 stopCountdown()
@@ -301,6 +321,70 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func configureAutomation() {
+        automationManager.onChange = { [weak self] evaluation in
+            DispatchQueue.main.async {
+                self?.handleAutomationEvaluation(evaluation)
+            }
+        }
+        automationManager.start()
+    }
+
+    private func handleAutomationEvaluation(_ evaluation: AutomationEvaluation) {
+        automationEvaluation = evaluation
+
+        if !evaluation.isActive {
+            isAutomationSuppressedUntilInactive = false
+
+            if isEnabledByAutomation, assertion.isActive {
+                stopCountdown()
+                assertion.disable()
+                isEnabledByAutomation = false
+                sendStatusNotification(
+                    title: "自动保持亮屏已关闭",
+                    body: "自动化条件已不再满足。"
+                )
+            }
+
+            updateMenuState()
+            return
+        }
+
+        if isAutomationSuppressedUntilInactive {
+            updateMenuState()
+            return
+        }
+
+        if assertion.isActive {
+            updateMenuState()
+            return
+        }
+
+        enableKeepBrightForAutomation(evaluation)
+    }
+
+    private func enableKeepBrightForAutomation(_ evaluation: AutomationEvaluation) {
+        if batteryMonitor.shouldPreventEnabling() != nil {
+            updateMenuState()
+            return
+        }
+
+        guard assertion.enable(mode: AppPreferences.sleepPreventionMode) else {
+            updateMenuState()
+            showAssertionError()
+            return
+        }
+
+        stopCountdown()
+        isEnabledByAutomation = true
+        wasDisabledByBatteryProtection = false
+        updateMenuState()
+        sendStatusNotification(
+            title: "自动保持亮屏已开启",
+            body: "触发规则：\(evaluation.summary)。"
+        )
+    }
+
     private func configureBatteryProtection() {
         batteryMonitor.onStateEvaluated = { [weak self] state in
             DispatchQueue.main.async {
@@ -313,6 +397,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func preferencesDidChange() {
         configureDurationMenu()
         configureGlobalHotKey()
+        automationManager.evaluateNow()
 
         if AppPreferences.batteryProtectionMode != .autoDisable {
             wasDisabledByBatteryProtection = false
@@ -390,6 +475,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         stopCountdown()
         assertion.disable()
+        isEnabledByAutomation = false
         wasDisabledByBatteryProtection = shouldRestoreWhenConnected
         didSendLowBatteryNotification = true
         updateMenuState()
@@ -478,6 +564,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateMenuState() {
         let isEnabled = assertion.isActive
         statusItemLabel.title = statusText(isEnabled: isEnabled)
+        automationStatusItem.title = automationStatusText()
         toggleItem.title = isEnabled ? "关闭保持亮屏" : "开启保持亮屏"
         toggleItem.state = isEnabled ? .on : .off
 
@@ -616,11 +703,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return "保持亮屏：已关闭"
         }
 
+        if isEnabledByAutomation, automationEvaluation.isActive {
+            return "保持亮屏：自动开启（\(automationEvaluation.summary)）"
+        }
+
         if activeUntil != nil {
             return "保持亮屏：剩余 \(formattedRemainingTime())"
         }
 
         return "保持亮屏：已开启（\(AppPreferences.sleepPreventionMode.shortTitle)，永久）"
+    }
+
+    private func automationStatusText() -> String {
+        guard automationEvaluation.isActive else {
+            return "自动化：未触发"
+        }
+
+        if isAutomationSuppressedUntilInactive {
+            return "自动化：已暂停（\(automationEvaluation.summary)）"
+        }
+
+        return "自动化：\(automationEvaluation.summary)"
     }
 
     private func menuBarTitle(isEnabled: Bool) -> String {
@@ -640,6 +743,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .statusText:
             guard isEnabled else {
                 return "已关闭"
+            }
+            if isEnabledByAutomation {
+                return "自动开启"
             }
             if activeUntil != nil {
                 return "剩余 \(formattedRemainingTime())"
@@ -696,9 +802,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showAbout() {
         let alert = NSAlert()
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.6.4"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.7.0"
         alert.messageText = "保持亮屏 \(version)"
-        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持全局快捷键、菜单栏显示模式、快速延长时间、通知偏好、Liquid Glass 偏好设置、Universal Binary、DMG 安装包和更新检查。"
+        alert.informativeText = "一个原生 macOS 菜单栏工具。开启后会阻止屏幕因闲置而自动变暗或息屏，支持自动化规则、全局快捷键、菜单栏显示模式、快速延长时间、通知偏好、Liquid Glass 偏好设置、Universal Binary、DMG 安装包和更新检查。"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "好")
         alert.runModal()

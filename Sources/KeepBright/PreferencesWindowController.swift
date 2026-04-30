@@ -1,10 +1,11 @@
 import AppKit
 
-final class PreferencesWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate {
+final class PreferencesWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate {
     var onPreferencesChanged: (() -> Void)?
 
     fileprivate enum Pane: Int, CaseIterable {
         case general
+        case automation
         case timer
         case battery
         case updates
@@ -15,6 +16,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             switch self {
             case .general:
                 return "常规"
+            case .automation:
+                return "自动化"
             case .timer:
                 return "计时"
             case .battery:
@@ -32,6 +35,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             switch self {
             case .general:
                 return "控制 Keep Bright 的默认行为、菜单栏呈现和快捷入口。"
+            case .automation:
+                return "按当前 App、全屏、外接显示器和电源状态自动保持亮屏。"
             case .timer:
                 return "设置定时保持亮屏的默认时长，并配合菜单中的快速延长操作。"
             case .battery:
@@ -49,6 +54,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             switch self {
             case .general:
                 return "sun.max"
+            case .automation:
+                return "sparkles"
             case .timer:
                 return "timer"
             case .battery:
@@ -76,6 +83,11 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
     private let menuBarDisplayPopup = NSPopUpButton()
     private let launchSwitch = NSSwitch()
     private let hotKeySwitch = NSSwitch()
+    private let automationAppRulesSwitch = NSSwitch()
+    private let automationFullscreenSwitch = NSSwitch()
+    private let automationExternalDisplaySwitch = NSSwitch()
+    private let automationPowerAdapterSwitch = NSSwitch()
+    private let automationAppsField = NSTextField()
     private let updateChecksSwitch = NSSwitch()
     private let notifyStatusSwitch = NSSwitch()
     private let notifyTimerSwitch = NSSwitch()
@@ -129,6 +141,10 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
 
         configureSwitch(launchSwitch, action: #selector(toggleLaunchPreference))
         configureSwitch(hotKeySwitch, action: #selector(toggleHotKey))
+        configureSwitch(automationAppRulesSwitch, action: #selector(toggleAutomationAppRules))
+        configureSwitch(automationFullscreenSwitch, action: #selector(toggleAutomationFullscreen))
+        configureSwitch(automationExternalDisplaySwitch, action: #selector(toggleAutomationExternalDisplay))
+        configureSwitch(automationPowerAdapterSwitch, action: #selector(toggleAutomationPowerAdapter))
         configureSwitch(updateChecksSwitch, action: #selector(toggleUpdateChecks))
         configureSwitch(notifyStatusSwitch, action: #selector(toggleStatusNotifications))
         configureSwitch(notifyTimerSwitch, action: #selector(toggleTimerNotifications))
@@ -142,6 +158,14 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         customDurationField.widthAnchor.constraint(equalToConstant: 64).isActive = true
         customDurationField.target = self
         customDurationField.action = #selector(changeCustomDurationFromField)
+
+        automationAppsField.controlSize = .regular
+        automationAppsField.bezelStyle = .roundedBezel
+        automationAppsField.placeholderString = "Keynote, Zoom, 腾讯会议"
+        automationAppsField.target = self
+        automationAppsField.action = #selector(changeAutomationAppRules)
+        automationAppsField.delegate = self
+        automationAppsField.widthAnchor.constraint(equalToConstant: 260).isActive = true
 
         customDurationStepper.minValue = 1
         customDurationStepper.maxValue = 720
@@ -387,6 +411,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         switch selectedPane {
         case .general:
             renderGeneralPane()
+        case .automation:
+            renderAutomationPane()
         case .timer:
             renderTimerPane()
         case .battery:
@@ -429,6 +455,40 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
                     title: "全局快捷键",
                     detail: "使用 Option-Command-K 在任意应用中开启或关闭保持亮屏。",
                     control: hotKeySwitch
+                )
+            ]
+        ))
+    }
+
+    private func renderAutomationPane() {
+        detailStack.addArrangedSubview(section(
+            title: "场景规则",
+            footer: "自动化只在规则满足时接管；如果你手动关闭，Keep Bright 会暂停自动开启，直到当前规则不再满足。",
+            rows: [
+                settingsRow(
+                    title: "指定 App",
+                    detail: "当前台应用匹配下方名称或 Bundle ID 时自动开启。",
+                    control: automationAppRulesSwitch
+                ),
+                settingsRow(
+                    title: "App 列表",
+                    detail: "用逗号分隔，例如 Keynote、zoom.us、腾讯会议。",
+                    control: automationAppsField
+                ),
+                settingsRow(
+                    title: "全屏时自动开启",
+                    detail: "检测到当前前台 App 有全屏窗口时自动保持亮屏。",
+                    control: automationFullscreenSwitch
+                ),
+                settingsRow(
+                    title: "外接显示器",
+                    detail: "连接外接显示器或投影时自动保持亮屏。",
+                    control: automationExternalDisplaySwitch
+                ),
+                settingsRow(
+                    title: "连接电源",
+                    detail: "接入电源适配器时自动保持亮屏，拔电后恢复。",
+                    control: automationPowerAdapterSwitch
                 )
             ]
         ))
@@ -568,8 +628,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let title = NSTextField(labelWithString: "Keep Bright")
         title.font = .systemFont(ofSize: 18, weight: .semibold)
 
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.6.4"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "11"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.7.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "12"
         let subtitle = NSTextField(labelWithString: "版本 \(version)（\(build)）")
         subtitle.font = .systemFont(ofSize: 12, weight: .regular)
         subtitle.textColor = .secondaryLabelColor
@@ -735,6 +795,11 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         selectPopupItem(menuBarDisplayPopup, rawValue: AppPreferences.menuBarDisplayMode.rawValue)
         launchSwitch.state = AppPreferences.enableOnLaunch ? .on : .off
         hotKeySwitch.state = AppPreferences.globalHotKeyEnabled ? .on : .off
+        automationAppRulesSwitch.state = AppPreferences.automationAppRulesEnabled ? .on : .off
+        automationFullscreenSwitch.state = AppPreferences.automationFullscreenEnabled ? .on : .off
+        automationExternalDisplaySwitch.state = AppPreferences.automationExternalDisplayEnabled ? .on : .off
+        automationPowerAdapterSwitch.state = AppPreferences.automationPowerAdapterEnabled ? .on : .off
+        automationAppsField.stringValue = AppPreferences.automationAppRules.joined(separator: ", ")
         updateChecksSwitch.state = AppPreferences.automaticUpdateChecksEnabled ? .on : .off
         notifyStatusSwitch.state = AppPreferences.notifyStatusChanges ? .on : .off
         notifyTimerSwitch.state = AppPreferences.notifyTimerEvents ? .on : .off
@@ -746,6 +811,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         thresholdSlider.integerValue = AppPreferences.batteryProtectionThreshold
         updateThresholdLabel()
         updateBatteryControls()
+        updateAutomationControls()
     }
 
     private func configureSleepModePopup() {
@@ -849,6 +915,33 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         onPreferencesChanged?()
     }
 
+    @objc private func toggleAutomationAppRules() {
+        AppPreferences.automationAppRulesEnabled = automationAppRulesSwitch.state == .on
+        updateAutomationControls()
+        onPreferencesChanged?()
+    }
+
+    @objc private func toggleAutomationFullscreen() {
+        AppPreferences.automationFullscreenEnabled = automationFullscreenSwitch.state == .on
+        onPreferencesChanged?()
+    }
+
+    @objc private func toggleAutomationExternalDisplay() {
+        AppPreferences.automationExternalDisplayEnabled = automationExternalDisplaySwitch.state == .on
+        onPreferencesChanged?()
+    }
+
+    @objc private func toggleAutomationPowerAdapter() {
+        AppPreferences.automationPowerAdapterEnabled = automationPowerAdapterSwitch.state == .on
+        onPreferencesChanged?()
+    }
+
+    @objc private func changeAutomationAppRules() {
+        AppPreferences.automationAppRules = parsedAutomationRules(from: automationAppsField.stringValue)
+        automationAppsField.stringValue = AppPreferences.automationAppRules.joined(separator: ", ")
+        onPreferencesChanged?()
+    }
+
     @objc private func toggleUpdateChecks() {
         AppPreferences.automaticUpdateChecksEnabled = updateChecksSwitch.state == .on
         onPreferencesChanged?()
@@ -936,6 +1029,28 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
     private func syncCustomDurationControls() {
         customDurationField.integerValue = AppPreferences.customDurationMinutes
         customDurationStepper.integerValue = AppPreferences.customDurationMinutes
+    }
+
+    func controlTextDidEndEditing(_ obj: Notification) {
+        guard obj.object as? NSTextField == automationAppsField else {
+            return
+        }
+
+        changeAutomationAppRules()
+    }
+
+    private func parsedAutomationRules(from value: String) -> [String] {
+        let separators = CharacterSet(charactersIn: ",，;；\n")
+        return value
+            .components(separatedBy: separators)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    private func updateAutomationControls() {
+        let isEnabled = AppPreferences.automationAppRulesEnabled
+        automationAppsField.isEnabled = isEnabled
+        automationAppsField.textColor = isEnabled ? .labelColor : .secondaryLabelColor
     }
 
     private func updateThresholdLabel() {

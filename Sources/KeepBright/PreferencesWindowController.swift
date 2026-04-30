@@ -74,6 +74,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
     private var selectedPane: Pane = .general
 
     private let sidebarTable = NSTableView()
+    private let pageIconBadge = SymbolBadgeView(size: 48, pointSize: 23, backgroundAlpha: 0.15, cornerRadius: 14)
     private let pageTitleLabel = NSTextField(labelWithString: "")
     private let pageSubtitleLabel = NSTextField(wrappingLabelWithString: "")
     private let detailStack = NSStackView()
@@ -101,7 +102,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 780, height: 560),
+            contentRect: NSRect(x: 0, y: 0, width: 840, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -112,7 +113,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         window.isMovableByWindowBackground = true
         window.backgroundColor = .clear
         window.isReleasedWhenClosed = false
-        window.minSize = NSSize(width: 720, height: 500)
+        window.minSize = NSSize(width: 760, height: 540)
         window.center()
 
         super.init(window: window)
@@ -217,7 +218,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             splitView.trailingAnchor.constraint(equalTo: glassContainer.trailingAnchor),
             splitView.topAnchor.constraint(equalTo: glassContainer.topAnchor),
             splitView.bottomAnchor.constraint(equalTo: glassContainer.bottomAnchor),
-            sidebarView.widthAnchor.constraint(equalToConstant: 220)
+            sidebarView.widthAnchor.constraint(equalToConstant: 230)
         ])
     }
 
@@ -225,7 +226,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let glassView = NSGlassEffectView()
         glassView.style = .regular
         glassView.cornerRadius = 0
-        glassView.tintColor = NSColor.controlAccentColor.withAlphaComponent(0.08)
+        glassView.tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.34)
         glassView.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView()
@@ -243,8 +244,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         column.resizingMask = .autoresizingMask
         sidebarTable.addTableColumn(column)
         sidebarTable.headerView = nil
-        sidebarTable.rowHeight = 38
-        sidebarTable.intercellSpacing = NSSize(width: 0, height: 4)
+        sidebarTable.rowHeight = 42
+        sidebarTable.intercellSpacing = NSSize(width: 0, height: 6)
         sidebarTable.style = .sourceList
         sidebarTable.backgroundColor = .clear
         sidebarTable.usesAlternatingRowBackgroundColors = false
@@ -263,13 +264,13 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             container.topAnchor.constraint(equalTo: glassView.topAnchor),
             container.bottomAnchor.constraint(equalTo: glassView.bottomAnchor),
 
-            header.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
-            header.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -14),
-            header.topAnchor.constraint(equalTo: container.topAnchor, constant: 54),
+            header.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
+            header.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+            header.topAnchor.constraint(equalTo: container.topAnchor, constant: 52),
 
             scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8),
             scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -8),
-            scrollView.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 22),
+            scrollView.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 26),
             scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -12)
         ])
 
@@ -280,18 +281,11 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let header = NSStackView()
         header.orientation = .horizontal
         header.alignment = .centerY
-        header.spacing = 10
+        header.spacing = 12
         header.translatesAutoresizingMaskIntoConstraints = false
 
-        let iconView = NSImageView()
-        let configuration = NSImage.SymbolConfiguration(pointSize: 26, weight: .semibold)
-        iconView.image = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: nil)?
-            .withSymbolConfiguration(configuration)
-        iconView.image?.isTemplate = true
-        iconView.contentTintColor = .controlAccentColor
-        iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconView.widthAnchor.constraint(equalToConstant: 32).isActive = true
-        iconView.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        let iconView = SymbolBadgeView(size: 38, pointSize: 19, backgroundAlpha: 0.14, cornerRadius: 11)
+        iconView.configure(symbolName: "cup.and.saucer.fill")
 
         let titleStack = NSStackView()
         titleStack.orientation = .vertical
@@ -299,7 +293,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         titleStack.spacing = 1
 
         let title = NSTextField(labelWithString: "Keep Bright")
-        title.font = .systemFont(ofSize: 14, weight: .semibold)
+        title.font = .systemFont(ofSize: 15, weight: .semibold)
         title.lineBreakMode = .byTruncatingTail
 
         let subtitle = NSTextField(labelWithString: "保持亮屏")
@@ -317,50 +311,36 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let glassView = NSGlassEffectView()
         glassView.style = .regular
         glassView.cornerRadius = 0
-        glassView.tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.48)
+        glassView.tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.54)
         glassView.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
         glassView.contentView = container
 
-        let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.42)
+        let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.48)
         readabilityBackdrop.translatesAutoresizingMaskIntoConstraints = false
 
-        let headerStack = NSStackView()
-        headerStack.orientation = .vertical
-        headerStack.alignment = .leading
-        headerStack.spacing = 6
-        headerStack.translatesAutoresizingMaskIntoConstraints = false
-
-        pageTitleLabel.font = .systemFont(ofSize: 28, weight: .bold)
-        pageTitleLabel.textColor = .labelColor
-        pageTitleLabel.lineBreakMode = .byTruncatingTail
-
-        pageSubtitleLabel.font = .systemFont(ofSize: 13, weight: .regular)
-        pageSubtitleLabel.textColor = .secondaryLabelColor
-        pageSubtitleLabel.maximumNumberOfLines = 2
-
-        headerStack.addArrangedSubview(pageTitleLabel)
-        headerStack.addArrangedSubview(pageSubtitleLabel)
+        let headerView = makePageHeaderView()
 
         let scrollView = NSScrollView()
         scrollView.drawsBackground = false
         scrollView.borderType = .noBorder
         scrollView.hasVerticalScroller = true
         scrollView.autohidesScrollers = true
+        scrollView.contentInsets = NSEdgeInsets(top: 0, left: 0, bottom: 10, right: 4)
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
         detailDocumentView.translatesAutoresizingMaskIntoConstraints = false
         detailStack.orientation = .vertical
         detailStack.alignment = .width
-        detailStack.spacing = 18
+        detailStack.spacing = 16
         detailStack.translatesAutoresizingMaskIntoConstraints = false
         detailDocumentView.addSubview(detailStack)
         scrollView.documentView = detailDocumentView
 
         container.addSubview(readabilityBackdrop)
-        container.addSubview(headerStack)
+        container.addSubview(headerView)
         container.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
@@ -374,13 +354,13 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
             readabilityBackdrop.topAnchor.constraint(equalTo: container.topAnchor),
             readabilityBackdrop.bottomAnchor.constraint(equalTo: container.bottomAnchor),
 
-            headerStack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 34),
-            headerStack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -34),
-            headerStack.topAnchor.constraint(equalTo: container.topAnchor, constant: 54),
+            headerView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 34),
+            headerView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -34),
+            headerView.topAnchor.constraint(equalTo: container.topAnchor, constant: 50),
 
             scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 34),
             scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -30),
-            scrollView.topAnchor.constraint(equalTo: headerStack.bottomAnchor, constant: 24),
+            scrollView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 26),
             scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -26),
 
             detailDocumentView.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor),
@@ -393,6 +373,45 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         return glassView
     }
 
+    private func makePageHeaderView() -> NSView {
+        let header = NSView()
+        header.translatesAutoresizingMaskIntoConstraints = false
+
+        let titleStack = NSStackView()
+        titleStack.orientation = .vertical
+        titleStack.alignment = .leading
+        titleStack.spacing = 5
+        titleStack.translatesAutoresizingMaskIntoConstraints = false
+
+        pageTitleLabel.font = .systemFont(ofSize: 27, weight: .semibold)
+        pageTitleLabel.textColor = .labelColor
+        pageTitleLabel.lineBreakMode = .byTruncatingTail
+
+        pageSubtitleLabel.font = .systemFont(ofSize: 13, weight: .regular)
+        pageSubtitleLabel.textColor = .secondaryLabelColor
+        pageSubtitleLabel.maximumNumberOfLines = 2
+
+        titleStack.addArrangedSubview(pageTitleLabel)
+        titleStack.addArrangedSubview(pageSubtitleLabel)
+
+        header.addSubview(pageIconBadge)
+        header.addSubview(titleStack)
+
+        NSLayoutConstraint.activate([
+            header.heightAnchor.constraint(greaterThanOrEqualToConstant: 48),
+            pageIconBadge.leadingAnchor.constraint(equalTo: header.leadingAnchor),
+            pageIconBadge.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+
+            titleStack.leadingAnchor.constraint(equalTo: pageIconBadge.trailingAnchor, constant: 14),
+            titleStack.trailingAnchor.constraint(lessThanOrEqualTo: header.trailingAnchor),
+            titleStack.topAnchor.constraint(equalTo: header.topAnchor),
+            titleStack.bottomAnchor.constraint(equalTo: header.bottomAnchor),
+            titleStack.centerYAnchor.constraint(equalTo: pageIconBadge.centerYAnchor)
+        ])
+
+        return header
+    }
+
     private func selectPane(_ pane: Pane) {
         selectedPane = pane
         sidebarTable.selectRowIndexes(IndexSet(integer: pane.rawValue), byExtendingSelection: false)
@@ -402,6 +421,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
     private func renderSelectedPane() {
         pageTitleLabel.stringValue = selectedPane.title
         pageSubtitleLabel.stringValue = selectedPane.subtitle
+        pageIconBadge.configure(symbolName: selectedPane.symbolName)
 
         detailStack.arrangedSubviews.forEach { view in
             detailStack.removeArrangedSubview(view)
@@ -433,11 +453,13 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
                 settingsRow(
                     title: "防睡眠模式",
                     detail: "默认只阻止屏幕息屏；增强模式会额外防止系统因闲置进入睡眠。",
+                    symbolName: "moon.zzz",
                     control: sleepModePopup
                 ),
                 settingsRow(
                     title: "启动后自动开启",
                     detail: "打开 Keep Bright 后立即进入保持亮屏状态。",
+                    symbolName: "power",
                     control: launchSwitch
                 )
             ]
@@ -449,11 +471,13 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
                 settingsRow(
                     title: "菜单栏显示",
                     detail: "选择杯子图标旁边显示倒计时、防睡眠模式或状态文字。",
+                    symbolName: "menubar.rectangle",
                     control: menuBarDisplayPopup
                 ),
                 settingsRow(
                     title: "全局快捷键",
                     detail: "使用 Option-Command-K 在任意应用中开启或关闭保持亮屏。",
+                    symbolName: "keyboard",
                     control: hotKeySwitch
                 )
             ]
@@ -468,26 +492,31 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
                 settingsRow(
                     title: "指定 App",
                     detail: "当前台应用匹配下方名称或 Bundle ID 时自动开启。",
+                    symbolName: "app.badge",
                     control: automationAppRulesSwitch
                 ),
                 settingsRow(
                     title: "App 列表",
                     detail: "用逗号分隔，例如 Keynote、zoom.us、腾讯会议。",
+                    symbolName: "list.bullet",
                     control: automationAppsField
                 ),
                 settingsRow(
                     title: "全屏时自动开启",
                     detail: "检测到当前前台 App 有全屏窗口时自动保持亮屏。",
+                    symbolName: "arrow.up.left.and.arrow.down.right",
                     control: automationFullscreenSwitch
                 ),
                 settingsRow(
                     title: "外接显示器",
                     detail: "连接外接显示器或投影时自动保持亮屏。",
+                    symbolName: "display",
                     control: automationExternalDisplaySwitch
                 ),
                 settingsRow(
                     title: "连接电源",
                     detail: "接入电源适配器时自动保持亮屏，拔电后恢复。",
+                    symbolName: "powerplug",
                     control: automationPowerAdapterSwitch
                 )
             ]
@@ -502,6 +531,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
                 settingsRow(
                     title: "自定义时长",
                     detail: "可设置 1 到 720 分钟。",
+                    symbolName: "timer",
                     control: customDurationControl()
                 )
             ]
@@ -516,16 +546,19 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
                 settingsRow(
                     title: "低电量保护",
                     detail: "低于阈值后可以只提醒，或自动关闭保持亮屏。",
+                    symbolName: "battery.50",
                     control: batteryProtectionPopup
                 ),
                 settingsRow(
                     title: "电量阈值",
                     detail: "当电池电量低于或等于该数值时触发保护。",
+                    symbolName: "slider.horizontal.3",
                     control: thresholdControl()
                 ),
                 settingsRow(
                     title: "插电后恢复",
                     detail: "如果保持亮屏被电池保护自动关闭，连接电源后自动恢复。",
+                    symbolName: "bolt.batteryblock",
                     control: restoreAfterPowerSwitch
                 )
             ]
@@ -540,12 +573,14 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
                 settingsRow(
                     title: "自动检查更新",
                     detail: "发现新版本时显示原生提示，并引导你打开下载页面。",
+                    symbolName: "arrow.triangle.2.circlepath",
                     control: updateChecksSwitch
                 ),
                 settingsRow(
                     title: "发布页面",
                     detail: "查看历史版本、DMG 安装包和校验信息。",
-                    control: actionButton(title: "打开 GitHub", action: #selector(openGitHub))
+                    symbolName: "shippingbox",
+                    control: actionButton(title: "打开 GitHub", symbolName: "arrow.up.forward.app", action: #selector(openGitHub))
                 )
             ]
         ))
@@ -558,16 +593,19 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
                 settingsRow(
                     title: "状态通知",
                     detail: "开启、关闭和插电恢复保持亮屏时提醒。",
+                    symbolName: "bell",
                     control: notifyStatusSwitch
                 ),
                 settingsRow(
                     title: "计时通知",
                     detail: "保持时长更新、延长计时和定时结束时提醒。",
+                    symbolName: "timer",
                     control: notifyTimerSwitch
                 ),
                 settingsRow(
                     title: "电池通知",
                     detail: "低电量提醒和电池保护自动关闭时提醒。",
+                    symbolName: "battery.50",
                     control: notifyBatterySwitch
                 )
             ]
@@ -580,7 +618,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
                 settingsRow(
                     title: "通知设置",
                     detail: "在系统设置里将 Keep Bright 的“显示预览”改为“始终”。",
-                    control: actionButton(title: "打开系统设置", action: #selector(openNotificationSettings))
+                    symbolName: "gearshape",
+                    control: actionButton(title: "打开系统设置", symbolName: "gearshape", action: #selector(openNotificationSettings))
                 )
             ]
         ))
@@ -594,12 +633,14 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
                 settingsRow(
                     title: "源代码",
                     detail: "查看 Keep Bright 的源码、发布包和版本记录。",
-                    control: actionButton(title: "打开 GitHub", action: #selector(openGitHub))
+                    symbolName: "chevron.left.forwardslash.chevron.right",
+                    control: actionButton(title: "打开 GitHub", symbolName: "arrow.up.forward.app", action: #selector(openGitHub))
                 ),
                 settingsRow(
                     title: "隐私说明",
                     detail: "Keep Bright 不收集、上传或出售个人数据。",
-                    control: actionButton(title: "查看说明", action: #selector(openPrivacy))
+                    symbolName: "hand.raised",
+                    control: actionButton(title: "查看说明", symbolName: "doc.text", action: #selector(openPrivacy))
                 )
             ]
         ))
@@ -628,8 +669,8 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let title = NSTextField(labelWithString: "Keep Bright")
         title.font = .systemFont(ofSize: 18, weight: .semibold)
 
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.7.0"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "12"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.7.1"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "13"
         let subtitle = NSTextField(labelWithString: "版本 \(version)（\(build)）")
         subtitle.font = .systemFont(ofSize: 12, weight: .regular)
         subtitle.textColor = .secondaryLabelColor
@@ -661,12 +702,12 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         let container = NSStackView()
         container.orientation = .vertical
         container.alignment = .width
-        container.spacing = 8
+        container.spacing = 7
         container.translatesAutoresizingMaskIntoConstraints = false
 
         let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
-        titleLabel.textColor = .secondaryLabelColor
+        titleLabel.font = .systemFont(ofSize: 11, weight: .semibold)
+        titleLabel.textColor = .tertiaryLabelColor
         container.addArrangedSubview(titleLabel)
 
         let group = SettingsGroupView()
@@ -705,18 +746,21 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         return container
     }
 
-    private func settingsRow(title: String, detail: String, control: NSView) -> NSView {
+    private func settingsRow(title: String, detail: String, symbolName: String, control: NSView) -> NSView {
         let row = NSView()
         row.translatesAutoresizingMaskIntoConstraints = false
+
+        let iconView = SymbolBadgeView(size: 30, pointSize: 14, backgroundAlpha: 0.1, cornerRadius: 8)
+        iconView.configure(symbolName: symbolName)
 
         let textStack = NSStackView()
         textStack.orientation = .vertical
         textStack.alignment = .leading
-        textStack.spacing = 3
+        textStack.spacing = 4
         textStack.translatesAutoresizingMaskIntoConstraints = false
 
         let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         titleLabel.lineBreakMode = .byTruncatingTail
 
         let detailLabel = NSTextField(wrappingLabelWithString: detail)
@@ -731,13 +775,17 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         control.setContentHuggingPriority(.required, for: .horizontal)
         control.setContentCompressionResistancePriority(.required, for: .horizontal)
 
+        row.addSubview(iconView)
         row.addSubview(textStack)
         row.addSubview(control)
 
         NSLayoutConstraint.activate([
-            row.heightAnchor.constraint(greaterThanOrEqualToConstant: 66),
+            row.heightAnchor.constraint(greaterThanOrEqualToConstant: 70),
 
-            textStack.leadingAnchor.constraint(equalTo: row.leadingAnchor, constant: 16),
+            iconView.leadingAnchor.constraint(equalTo: row.leadingAnchor, constant: 16),
+            iconView.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+
+            textStack.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
             textStack.trailingAnchor.constraint(lessThanOrEqualTo: control.leadingAnchor, constant: -20),
             textStack.centerYAnchor.constraint(equalTo: row.centerYAnchor),
 
@@ -756,10 +804,15 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         return separator
     }
 
-    private func actionButton(title: String, action: Selector) -> NSButton {
+    private func actionButton(title: String, symbolName: String, action: Selector) -> NSButton {
         let button = NSButton(title: title, target: self, action: action)
         button.bezelStyle = .glass
         button.controlSize = .regular
+        if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) {
+            image.isTemplate = true
+            button.image = image
+            button.imagePosition = .imageLeading
+        }
         return button
     }
 
@@ -873,6 +926,10 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
         cell.identifier = .preferencesPaneCell
         cell.configure(with: panes[row])
         return cell
+    }
+
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        SidebarRowView()
     }
 
     func tableViewSelectionDidChange(_ notification: Notification) {
@@ -1066,7 +1123,7 @@ final class PreferencesWindowController: NSWindowController, NSTableViewDataSour
 }
 
 private final class SidebarCellView: NSTableCellView {
-    private let symbolView = NSImageView()
+    private let symbolView = SymbolBadgeView(size: 26, pointSize: 13, backgroundAlpha: 0.08, cornerRadius: 7)
     private let titleField = NSTextField(labelWithString: "")
 
     override init(frame frameRect: NSRect) {
@@ -1079,48 +1136,112 @@ private final class SidebarCellView: NSTableCellView {
     }
 
     func configure(with pane: PreferencesWindowController.Pane) {
-        let configuration = NSImage.SymbolConfiguration(pointSize: 15, weight: .regular)
-        symbolView.image = NSImage(systemSymbolName: pane.symbolName, accessibilityDescription: nil)?
-            .withSymbolConfiguration(configuration)
-        symbolView.image?.isTemplate = true
+        symbolView.configure(symbolName: pane.symbolName)
         titleField.stringValue = pane.title
     }
 
     private func configureView() {
-        symbolView.translatesAutoresizingMaskIntoConstraints = false
-        symbolView.contentTintColor = .labelColor
-        symbolView.widthAnchor.constraint(equalToConstant: 20).isActive = true
-        symbolView.heightAnchor.constraint(equalToConstant: 20).isActive = true
-
         titleField.translatesAutoresizingMaskIntoConstraints = false
         titleField.font = .systemFont(ofSize: 13, weight: .medium)
         titleField.lineBreakMode = .byTruncatingTail
 
         addSubview(symbolView)
         addSubview(titleField)
-        imageView = symbolView
         textField = titleField
 
         NSLayoutConstraint.activate([
-            symbolView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            symbolView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             symbolView.centerYAnchor.constraint(equalTo: centerYAnchor),
 
-            titleField.leadingAnchor.constraint(equalTo: symbolView.trailingAnchor, constant: 9),
+            titleField.leadingAnchor.constraint(equalTo: symbolView.trailingAnchor, constant: 10),
             titleField.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             titleField.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
     }
 }
 
+private final class SidebarRowView: NSTableRowView {
+    override func drawSelection(in dirtyRect: NSRect) {
+        guard selectionHighlightStyle != .none else {
+            return
+        }
+
+        let rect = bounds.insetBy(dx: 5, dy: 2)
+        let path = NSBezierPath(roundedRect: rect, xRadius: 9, yRadius: 9)
+        NSColor.controlAccentColor.withAlphaComponent(0.18).setFill()
+        path.fill()
+    }
+}
+
+private final class SymbolBadgeView: NSView {
+    private let imageView = NSImageView()
+    private let size: CGFloat
+    private let pointSize: CGFloat
+    private let backgroundAlpha: CGFloat
+    private let badgeCornerRadius: CGFloat
+
+    init(size: CGFloat, pointSize: CGFloat, backgroundAlpha: CGFloat, cornerRadius: CGFloat) {
+        self.size = size
+        self.pointSize = pointSize
+        self.backgroundAlpha = backgroundAlpha
+        self.badgeCornerRadius = cornerRadius
+        super.init(frame: .zero)
+        configureView()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func configure(symbolName: String) {
+        let configuration = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .semibold)
+        imageView.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
+            .withSymbolConfiguration(configuration)
+        imageView.image?.isTemplate = true
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateLayerStyling()
+    }
+
+    private func configureView() {
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.contentTintColor = .controlAccentColor
+        addSubview(imageView)
+
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: size),
+            heightAnchor.constraint(equalToConstant: size),
+
+            imageView.centerXAnchor.constraint(equalTo: centerXAnchor),
+            imageView.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+
+        updateLayerStyling()
+    }
+
+    private func updateLayerStyling() {
+        layer?.cornerRadius = badgeCornerRadius
+        layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(backgroundAlpha).cgColor
+        layer?.borderWidth = 0.6
+        layer?.borderColor = NSColor.controlAccentColor.withAlphaComponent(0.18).cgColor
+    }
+}
+
 private final class SettingsGroupView: NSGlassEffectView {
     let contentContainer = NSView()
-    private let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.36)
+    private let readabilityBackdrop = ReadabilityBackdropView(alpha: 0.42)
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         style = .regular
-        cornerRadius = 14
-        tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.62)
+        cornerRadius = 12
+        tintColor = NSColor.controlBackgroundColor.withAlphaComponent(0.58)
+        wantsLayer = true
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
 
         let wrapper = NSView()
@@ -1146,10 +1267,22 @@ private final class SettingsGroupView: NSGlassEffectView {
             contentContainer.topAnchor.constraint(equalTo: wrapper.topAnchor),
             contentContainer.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor)
         ])
+
+        updateLayerStyling()
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateLayerStyling()
+    }
+
+    private func updateLayerStyling() {
+        layer?.borderWidth = 0.7
+        layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.28).cgColor
     }
 }
 
